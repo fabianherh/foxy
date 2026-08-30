@@ -19,6 +19,9 @@
 .marketing-hero { width: min(1240px, calc(100% - 48px)); min-height: 690px; margin: 0 auto; display: grid; grid-template-columns: 1.02fr .98fr; align-items: center; gap: 70px; padding: 65px 0 80px; }
 .hero-copy { position: relative; z-index: 2; }.hero-note { width: fit-content; display: flex; align-items: center; gap: 8px; color: var(--m-muted); font-size: 11px; }.hero-note i { width: 8px; height: 8px; border-radius: 50%; background: var(--m-coral); box-shadow: 0 3px 10px rgba(240,78,104,.28); }.hero-copy h1 { max-width: 710px; margin: 23px 0 22px; font-size: clamp(54px, 6.4vw, 92px); line-height: .96; letter-spacing: -.04em; font-weight: 580; text-wrap: balance; }.hero-copy h1 strong { display: block; color: var(--m-coral); font-weight: 700; }
 .typewriter { white-space: nowrap; }
+.hero-strong { position: relative; display: block; }
+.hero-sizer { visibility: hidden; }
+.hero-live { position: absolute; inset: 0; }
 .type-caret { display: inline-block; width: .5em; height: .08em; margin-left: .07em; background: var(--m-coral); vertical-align: baseline; animation: caret-blink 1.06s steps(1) infinite; }
 @keyframes caret-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .type-caret { animation: none; } }
