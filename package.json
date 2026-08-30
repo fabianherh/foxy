@@ -2,13 +2,25 @@
   "name": "foxy",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:backend": "convex dev",
+    "dev:full": "convex dev --start \"next dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "convex:check": "convex dev --once --typecheck enable",
+    "demo:seed": "convex run demo:seedDemo",
+    "demo:fresh": "convex run demo:createFreshDemoSession",
+    "demo:next": "convex run demo:demoAnswerNextQuestion",
+    "demo:reset": "convex run demo:resetDemo",
+    "test:realtime": "node --env-file=.env.local tests/realtime-smoke.mjs"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.65.0",
