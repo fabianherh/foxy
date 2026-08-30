@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foxy — Brand &amp; Design Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* ——— Foxy brand tokens (light board) ——— */
+  --ink: #32122f;            /* plum — the fox outline color */
+  --ink-soft: #5c4459;
+  --muted: #6b5a68;
+  --paper: #fbf8f1;
+  --cream: #efe9dc;          /* the pixel fox's home ground */
+  --line: #e2d9c9;
+  --line-strong: #d3c7b2;
+  --orange: #e8793e;         /* UI accent */
+  --orange-deep: #b8501a;    /* text-safe orange */
+  --pink: #f24f68;
+  --purple: #8d2aa8;
+  --grad: linear-gradient(135deg, #ff853f 0%, #f24f68 56%, #8d2aa8 100%);
+  /* dark app palette, shown as artifact */
+  --d-ground: #11110f;
+  --d-surface: #181816;
+  --d-raised: #20201d;
+  --d-ink: #f2f0eb;
+  --green: #65b98a; --yellow: #d4ac52; --red: #db726d; --blue: #78a9d1;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: "Geist", sans-serif;
+  font-optical-sizing: auto;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--orange); color: #1d100a; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border: 3px solid var(--cream); border-radius: 8px; }
+:focus-visible { outline: 2px solid var(--orange-deep); outline-offset: 3px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { text-wrap: pretty; }
+.mono { font-family: "Geist Mono", monospace; font-variant-numeric: tabular-nums; }
+
+/* ——— Page frame: gradient surround like a mounted board ——— */
+.frame {
+  min-height: 100vh;
+  padding: clamp(14px, 2.5vw, 30px);
+  background:
+    radial-gradient(120% 90% at 8% 0%, rgba(255,133,63,.42), transparent 55%),
+    radial-gradient(110% 90% at 96% 8%, rgba(141,42,168,.34), transparent 52%),
+    radial-gradient(120% 110% at 50% 108%, rgba(242,79,104,.36), transparent 58%),
+    var(--cream);
+}
+.board {
+  max-width: 1180px;
+  margin: 0 auto;
+  background: var(--paper);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px -30px rgba(50, 18, 47, .35);
+  overflow: clip;
+}
+
+/* ——— Masthead ——— */
+.masthead {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  align-items: center; justify-content: space-between;
+  padding: 26px clamp(24px, 4.5vw, 56px);
+  border-bottom: 1px solid var(--line);
+}
+.masthead-brand { display: flex; align-items: center; gap: 12px; }
+.masthead-brand svg { display: block; }
+.masthead-brand strong { font-size: 19px; font-weight: 750; letter-spacing: -.03em; }
+.masthead-brand span { color: var(--muted); font-size: 12px; padding-left: 10px; border-left: 1px solid var(--line-strong); }
+.masthead nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.masthead nav a {
+  color: var(--ink-soft); text-decoration: none; font-size: 12.5px; font-weight: 540;
+  padding: 7px 11px; border-radius: 8px;
+  transition: background 150ms var(--ease), color 150ms var(--ease);
+}
+.masthead nav a:hover { background: var(--cream); color: var(--ink); }
+
+section { padding: clamp(40px, 6vw, 72px) clamp(24px, 4.5vw, 56px); border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: 0; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin-bottom: 36px; flex-wrap: wrap; }
+.section-head h2 { font-size: clamp(24px, 3vw, 34px); font-weight: 680; letter-spacing: -.03em; }
+.section-head p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 44ch; }
+
+/* ——— Hero brand board grid ——— */
+.hero { position: relative; }
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  position: relative;
+  background: #fff;
+}
+.hero-grid > div { padding: clamp(26px, 4vw, 44px); position: relative; }
+.cell-mission { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; gap: 18px; align-items: flex-start; }
+.cell-mission svg { flex: 0 0 auto; margin-top: 3px; }
+.cell-mission p { margin: 0; font-size: clamp(17px, 2vw, 21px); line-height: 1.45; font-weight: 620; letter-spacing: -.015em; color: var(--ink); max-width: 34ch; }
+.cell-mission p b { color: var(--orange-deep); font-weight: 700; }
+.cell-mission p i { font-style: normal; color: var(--purple); font-weight: 700; }
+.cell-vertical { border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 16px; }
+.cell-vertical .stack { font-size: 14px; font-weight: 640; line-height: 1.3; letter-spacing: -.01em; color: var(--ink-soft); }
+.cell-lockup { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 20px; }
+.wordmark { font-size: clamp(44px, 6vw, 68px); font-weight: 780; letter-spacing: -.045em; line-height: 1; }
+.wordmark sup { font-size: .22em; font-weight: 600; letter-spacing: 0; vertical-align: 2.1em; color: var(--muted); }
+.cell-mono { border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+.coin {
+  width: 148px; height: 148px; border-radius: 50%;
+  background: #ecebe7; display: grid; place-items: center;
+  box-shadow: inset 0 2px 6px rgba(50,18,47,.08);
+}
+.cell-pill { border-right: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+.pill-stack { position: relative; }
+.pill-stack::before, .pill-stack::after {
+  content: ""; position: absolute; inset: 0; border-radius: 20px; z-index: 0;
+}
+.pill-stack::before { background: var(--grad); transform: translate(-12px, 12px); opacity: .9; }
+.pill-stack::after { background: #efe4d2; transform: translate(-22px, 22px); z-index: -1; }
+.pill {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 18px;
+  background: var(--ink);
+  border-radius: 20px;
+  padding: 26px 40px 26px 28px;
+  box-shadow: 0 18px 40px -18px rgba(50,18,47,.5);
+}
+.pill .pill-word { color: var(--d-ink); font-size: clamp(34px, 4vw, 46px); font-weight: 760; letter-spacing: -.04em; line-height: 1; }
+.pill .pill-word sup { font-size: .24em; font-weight: 500; vertical-align: 2em; color: #a99aa6; }
+.cell-appicon { display: flex; align-items: center; justify-content: center; }
+.app-icon {
+  width: 128px; height: 128px; border-radius: 30px;
+  background: var(--grad);
+  display: grid; place-items: center;
+  box-shadow: 0 16px 36px -14px rgba(141,42,168,.5);
+}
+/* diamond joints at grid intersections */
+.joint {
+  position: absolute; width: 13px; height: 13px; z-index: 2;
+  color: var(--orange); pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.joint svg { display: block; }
+
+/* fox pixel-layer entrance — the one authored moment */
+.fox-hero .fx { opacity: 0; animation: fox-layer 480ms var(--ease) forwards; }
+.fox-hero .fx:nth-child(1) { animation-delay: 80ms; }
+.fox-hero .fx:nth-child(2) { animation-delay: 200ms; }
+.fox-hero .fx:nth-child(3) { animation-delay: 300ms; }
+.fox-hero .fx:nth-child(4) { animation-delay: 380ms; }
+.fox-hero .fx:nth-child(5) { animation-delay: 450ms; }
+.fox-hero .fx:nth-child(6) { animation-delay: 520ms; }
+@keyframes fox-layer { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .fox-hero .fx { animation: none; opacity: 1; }
+  html { scroll-behavior: auto; }
+}
+
+/* ——— Logo section ——— */
+.logo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.logo-tile { border: 1px solid var(--line); border-radius: var(--radius); overflow: clip; background: #fff; }
+.logo-tile .swatch-area { height: 170px; display: grid; place-items: center; }
+.logo-tile .meta { border-top: 1px solid var(--line); padding: 12px 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.logo-tile .meta strong { font-size: 12.5px; font-weight: 640; }
+.logo-tile .meta span { color: var(--muted); font-size: 10.5px; }
+.on-dark { background: var(--d-ground); }
+.on-grad { background: var(--grad); }
+.on-cream { background: var(--cream); }
+.usage { margin-top: 44px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: start; }
+.usage h3 { font-size: 15px; font-weight: 660; margin-bottom: 14px; letter-spacing: -.01em; }
+.clearspace {
+  border: 1px solid var(--line); border-radius: var(--radius); background: #fff;
+  padding: 44px; display: grid; place-items: center; position: relative;
+}
+.clearspace .cs-inner { position: relative; padding: 24px; }
+.clearspace .cs-inner::before {
+  content: ""; position: absolute; inset: 0;
+  border: 1px dashed var(--orange); border-radius: 6px; opacity: .7;
+}
+.clearspace figcaption { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 11px; }
+.rules { display: flex; flex-direction: column; }
+.rules > div { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink-soft); align-items: start; }
+.rules > div:last-child { border-bottom: 0; }
+.rules svg { margin-top: 1px; }
+.rules .do svg { color: #2e7d54; }
+.rules .dont svg { color: #b3413c; }
+
+/* ——— Color section ——— */
+.grad-strip {
+  height: 96px; border-radius: var(--radius); background: var(--grad);
+  position: relative; margin-bottom: 14px;
+}
+.grad-stops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 40px; }
+.grad-stops button { text-align: left; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.swatch {
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: clip;
+  background: #fff; cursor: pointer; padding: 0; font: inherit; color: inherit;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+  display: block; width: 100%;
+}
+.swatch:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(50,18,47,.28); }
+.swatch:active { transform: scale(.98); }
+.swatch .chip { display: block; height: 76px; }
+.swatch .info { display: block; padding: 10px 13px 12px; border-top: 1px solid var(--line); }
+.swatch .info strong { display: block; font-size: 12px; font-weight: 640; }
+.swatch .info code { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--muted); }
+.palette-label { margin: 40px 0 14px; font-size: 15px; font-weight: 660; letter-spacing: -.01em; }
+.palette-label:first-of-type { margin-top: 0; }
+.palette-note { color: var(--muted); font-size: 12.5px; margin: -6px 0 14px; max-width: 62ch; }
+.dark-panel {
+  background: var(--d-ground); border-radius: var(--radius); padding: 4px;
+}
+.dark-panel .swatch { background: var(--d-surface); border-color: #34332e; margin: 0; border-radius: 9px; }
+.dark-panel .swatches { gap: 10px; padding: 10px; }
+.dark-panel .swatch .info { border-color: #34332e; }
+.dark-panel .swatch .info strong { color: var(--d-ink); }
+.dark-panel .swatch .info code { color: #918e86; }
+
+/* ——— Typography ——— */
+.type-specimen {
+  border: 1px solid var(--line); border-radius: var(--radius); background: #fff;
+  padding: clamp(28px, 4vw, 48px); margin-bottom: 14px;
+}
+.type-specimen .giant { font-size: clamp(52px, 8vw, 110px); font-weight: 760; letter-spacing: -.04em; line-height: .95; }
+.type-specimen .giant em { font-style: normal; color: var(--orange-deep); }
+.type-specimen .alphabet { margin-top: 26px; color: var(--muted); font-size: 15px; letter-spacing: .01em; word-break: break-all; line-height: 1.7; }
+.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.type-card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 24px 26px; }
+.type-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 16px; }
+.type-card header strong { font-size: 12.5px; font-weight: 640; }
+.type-card header code { font-family: "Geist Mono", monospace; font-size: 10.5px; color: var(--muted); }
+.scale { display: flex; flex-direction: column; }
+.scale > div { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.scale > div:last-child { border-bottom: 0; }
+.scale code { font-family: "Geist Mono", monospace; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.t-display { font-size: 32px; font-weight: 680; letter-spacing: -.04em; line-height: 1.05; }
+.t-h2 { font-size: 22px; font-weight: 640; letter-spacing: -.03em; }
+.t-h3 { font-size: 16px; font-weight: 620; letter-spacing: -.02em; }
+.t-body { font-size: 14px; font-weight: 440; color: var(--ink-soft); }
+.t-caption { font-size: 11.5px; font-weight: 560; color: var(--muted); }
+.t-datum { font-family: "Geist Mono", monospace; font-size: 20px; font-weight: 500; }
+
+/* ——— Verification voice ——— */
+.chain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
+.chain-step {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); background: #fff; border-radius: 12px;
+  padding: 14px 18px;
+}
+.chain-step span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: "Geist Mono", monospace; font-size: 11px; color: var(--orange-deep); border: 1px solid var(--orange); background: #fdf3ec; }
+.chain-step strong { font-size: 13.5px; font-weight: 640; letter-spacing: -.01em; }
+.chain-arrow { color: var(--line-strong); flex: 0 0 auto; }
+.status-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.status-card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 20px 22px; }
+.status-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 10.5px; font-weight: 680; text-transform: uppercase; letter-spacing: .055em; }
+.status-chip i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-verified { color: #2e7d54; } .st-partial { color: #8a6a17; } .st-unverified { color: #a63d38; } .st-review { color: #33648f; }
+.status-card p { margin: 12px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.status-card .dark-chip { margin-top: 14px; background: var(--d-ground); border-radius: 8px; padding: 9px 12px; display: inline-flex; }
+.dark-chip .st-verified { color: var(--green); } .dark-chip .st-partial { color: var(--yellow); } .dark-chip .st-unverified { color: var(--red); } .dark-chip .st-review { color: var(--blue); }
+
+/* ——— Components ——— */
+.comp-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; align-items: stretch; }
+.comp-dark {
+  background: var(--d-ground); border-radius: var(--radius); padding: clamp(24px, 3.5vw, 40px);
+  display: flex; flex-direction: column; gap: 22px; justify-content: center;
+}
+.comp-dark h3 { color: var(--d-ink); font-size: 13px; font-weight: 620; }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.fx-btn {
+  min-height: 44px; border: 0; border-radius: 9px; padding: 0 17px;
+  display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+  font-family: "Geist", sans-serif; font-size: 13px; font-weight: 630;
+  transition: transform 150ms var(--ease), background 150ms var(--ease);
+}
+.fx-btn:active { transform: scale(.97); }
+.fx-primary { background: var(--orange); color: #1d100a; }
+.fx-primary:hover { background: #f18b52; }
+.fx-secondary { border: 1px solid #34332e; background: var(--d-raised); color: var(--d-ink); }
+.fx-secondary:hover { background: #292824; }
+.fx-input {
+  height: 48px; width: 100%; max-width: 320px; padding: 0 14px;
+  color: var(--d-ink); background: var(--d-surface);
+  border: 1px solid #34332e; border-radius: 10px;
+  font-family: "Geist", sans-serif; font-size: 13.5px;
+  transition: border-color 160ms var(--ease);
+}
+.fx-input::placeholder { color: #96928a; }
+.fx-input:focus { border-color: var(--orange); outline: 0; }
+.token-list { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 8px 22px; }
+.token-list > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.token-list > div:last-child { border-bottom: 0; }
+.token-list code { font-family: "Geist Mono", monospace; font-size: 11.5px; color: var(--muted); }
+
+/* ——— Footer ——— */
+.kit-footer {
+  padding: 30px clamp(24px, 4.5vw, 56px);
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  color: var(--muted); font-size: 12px;
+}
+.kit-footer .mono { font-size: 11px; }
+
+/* copy toast */
+#toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translate(-50%, 12px) scale(.97); opacity: 0;
+  background: var(--ink); color: var(--d-ink);
+  border-radius: 10px; padding: 11px 18px;
+  font-size: 12.5px; font-weight: 560; pointer-events: none;
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+  box-shadow: 0 14px 34px -12px rgba(50,18,47,.5);
+  z-index: 50;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+#toast code { font-family: "Geist Mono", monospace; color: #ffad67; }
+
+@media (max-width: 880px) {
+  .hero-grid, .usage, .type-grid, .comp-grid { grid-template-columns: 1fr; }
+  .cell-mission, .cell-lockup, .cell-pill { border-right: 0; }
+  .cell-pill { border-bottom: 1px solid var(--line); padding-bottom: 56px; }
+  .joint { display: none; }
+  .grad-stops { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SVG defs: the Foxy pixel mark ═══════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="foxGrad" x1="9" y1="8" x2="55" y2="57" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff853f"/><stop offset=".56" stop-color="#f24f68"/><stop offset="1" stop-color="#8d2aa8"/>
+    </linearGradient>
+    <g id="foxShape">
+      <path class="fx" fill="var(--fox-outline, #32122f)" d="M8 6h14v6h20V6h14v30h-6v10h-8v6H22v-6h-8V36H8z"/>
+      <path class="fx" fill="var(--fox-body, url(#foxGrad))" d="M14 12h8v6h20v-6h8v24h-6v8h-8v4h-8v-4h-8v-8h-6z"/>
+      <path class="fx" fill="var(--fox-ear, #ffad67)" d="M14 12h6v12h-6zm30 0h6v12h-6z"/>
+      <path class="fx" fill="var(--fox-chest, #fff5e7)" d="M20 32h8v6h8v-6h8v8h-6v6H26v-6h-6z"/>
+      <path class="fx" fill="var(--fox-outline, #32122f)" d="M20 28h6v6h-6zm18 0h6v6h-6zm-9 10h6v5h-6z"/>
+      <path class="fx" fill="var(--fox-chest, #fff5e7)" opacity=".65" d="M23 18h5v5h-5zm13 0h5v5h-5z"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="frame">
+<div class="board">
+
+  <!-- ═══════════ Masthead ═══════════ -->
+  <header class="masthead">
+    <div class="masthead-brand">
+      <svg width="30" height="30" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"><use href="#foxShape"/></svg>
+      <strong>Foxy</strong>
+      <span>Brand &amp; Design Kit · v1.0</span>
+    </div>
+    <nav aria-label="Kit sections">
+      <a href="#logo">Logo</a>
+      <a href="#color">Color</a>
+      <a href="#type">Typography</a>
+      <a href="#voice">Verification voice</a>
+      <a href="#components">Components</a>
+    </nav>
+  </header>
+
+  <!-- ═══════════ Hero brand board ═══════════ -->
+  <section class="hero" aria-label="Brand board">
+    <div class="hero-grid">
+      <span class="joint" style="top:0; left:59.2%"><svg viewBox="0 0 13 13" fill="currentColor" aria-hidden="true"><path d="M6.5 0l1.8 4.7L13 6.5 8.3 8.3 6.5 13 4.7 8.3 0 6.5l4.7-1.8z"/></svg></span>
+      <span class="joint" style="top:33.4%; left:59.2%"><svg viewBox="0 0 13 13" fill="currentColor" aria-hidden="true"><path d="M6.5 0l1.8 4.7L13 6.5 8.3 8.3 6.5 13 4.7 8.3 0 6.5l4.7-1.8z"/></svg></span>
+      <span class="joint" style="top:66.7%; left:59.2%"><svg viewBox="0 0 13 13" fill="currentColor" aria-hidden="true"><path d="M6.5 0l1.8 4.7L13 6.5 8.3 8.3 6.5 13 4.7 8.3 0 6.5l4.7-1.8z"/></svg></span>
+      <span class="joint" style="top:100%; left:59.2%"><svg viewBox="0 0 13 13" fill="currentColor" aria-hidden="true"><path d="M6.5 0l1.8 4.7L13 6.5 8.3 8.3 6.5 13 4.7 8.3 0 6.5l4.7-1.8z"/></svg></span>
+
+      <div class="cell-mission">
+        <svg width="42" height="42" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"><use href="#foxShape"/></svg>
+        <p><b>Foxy</b> verifies what engineers claim, using CV and public GitHub evidence, and turns every interview into a <i>traceable vetting report</i>.</p>
+      </div>
+
+      <div class="cell-vertical">
+        <svg width="58" height="58" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"><use href="#foxShape"/></svg>
+        <div class="stack">Claim<br>Evidence<br>Challenge<br>Verification</div>
+      </div>
+
+      <div class="cell-lockup">
+        <svg class="fox-hero" width="96" height="96" viewBox="0 0 64 64" shape-rendering="crispEdges" role="img" aria-label="Foxy pixel fox mark"><use href="#foxShape"/></svg>
+        <div class="wordmark">Foxy<sup>™</sup></div>
+      </div>
+
+      <div class="cell-mono">
+        <div class="coin">
+          <svg width="88" height="88" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"
+               style="--fox-outline:#7d7a74; --fox-body:#a3a09a; --fox-ear:#bcb9b3; --fox-chest:#dedbd5"><use href="#foxShape"/></svg>
+        </div>
+      </div>
+
+      <div class="cell-pill">
+        <div class="pill-stack">
+          <div class="pill">
+            <svg width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"
+                 style="--fox-outline:#1c0a1a"><use href="#foxShape"/></svg>
+            <span class="pill-word">Foxy<sup>™</sup></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cell-appicon">
+        <div class="app-icon">
+          <svg width="84" height="84" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"
+               style="--fox-outline:#32122f; --fox-body:#fff5e7; --fox-ear:#ffd9b8; --fox-chest:#e8793e"><use href="#foxShape"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Logo system ═══════════ -->
+  <section id="logo">
+    <div class="section-head">
+      <h2>Logo system</h2>
+      <p>One pixel fox, four contexts. The mark always renders with crisp edges: never anti-alias, blur, or smooth the pixels.</p>
+    </div>
+
+    <div class="logo-row">
+      <div class="logo-tile">
+        <div class="swatch-area">
+          <svg width="80" height="80" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"><use href="#foxShape"/></svg>
+        </div>
+        <div class="meta"><strong>Primary</strong><span>gradient on light</span></div>
+      </div>
+      <div class="logo-tile">
+        <div class="swatch-area on-dark">
+          <svg width="80" height="80" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"
+               style="--fox-outline:#1c0a1a"><use href="#foxShape"/></svg>
+        </div>
+        <div class="meta"><strong>Reversed</strong><span>gradient on ground #11110F</span></div>
+      </div>
+      <div class="logo-tile">
+        <div class="swatch-area">
+          <svg width="80" height="80" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"
+               style="--fox-outline:#32122f; --fox-body:#5c4459; --fox-ear:#8a7386; --fox-chest:#d9d2cd"><use href="#foxShape"/></svg>
+        </div>
+        <div class="meta"><strong>One-color ink</strong><span>plum #32122F, print &amp; embossing</span></div>
+      </div>
+      <div class="logo-tile">
+        <div class="swatch-area on-grad">
+          <svg width="80" height="80" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"
+               style="--fox-outline:#32122f; --fox-body:#fff5e7; --fox-ear:#ffd9b8; --fox-chest:#e8793e"><use href="#foxShape"/></svg>
+        </div>
+        <div class="meta"><strong>Knockout</strong><span>cream fox on brand gradient</span></div>
+      </div>
+    </div>
+
+    <div class="usage">
+      <figure class="clearspace" style="margin:0">
+        <div class="cs-inner">
+          <svg width="72" height="72" viewBox="0 0 64 64" shape-rendering="crispEdges" aria-hidden="true"><use href="#foxShape"/></svg>
+        </div>
+        <figcaption>Clear space = one ear width (12 px units) on all sides · minimum render size 20&times;20 px</figcaption>
+      </figure>
+      <div class="rules">
+        <div class="do">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></svg>
+          Scale in whole-pixel multiples (20, 34, 54, 64, 84, 96 px) so the grid stays sharp.
+        </div>
+        <div class="do">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></svg>
+          Pair the mark with the Geist wordmark at 780 weight, -0.045 em tracking.
+        </div>
+        <div class="dont">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
+          Never rotate, skew, outline, or redraw the fox in rounded or smooth vector style.
+        </div>
+        <div class="dont">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
+          Never recolor the gradient, apply drop shadows to the mark, or set the wordmark in gradient fills.
+        </div>
+        <div class="dont">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
+          Never place the gradient mark on mid-tone or clashing photographic backgrounds; use the ink or knockout variant.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Color ═══════════ -->
+  <section id="color">
+    <div class="section-head">
+      <h2>Color</h2>
+      <p>A warm ember gradient carries the brand; a near-black warm ground carries the product. Click any swatch to copy its hex.</p>
+    </div>
+
+    <h3 class="palette-label">Brand gradient</h3>
+    <p class="palette-note">135° linear. Reserved for the fox mark, the app icon, and one hero moment per surface. Never used for text.</p>
+    <div class="grad-strip" role="img" aria-label="Foxy brand gradient, ember orange to fox pink to dusk purple"></div>
+    <div class="grad-stops swatches">
+      <button class="swatch" data-hex="#FF853F"><span class="chip" style="background:#ff853f"></span><span class="info"><strong>Ember</strong> <code>#FF853F · 0%</code></span></button>
+      <button class="swatch" data-hex="#F24F68"><span class="chip" style="background:#f24f68"></span><span class="info"><strong>Fox Pink</strong> <code>#F24F68 · 56%</code></span></button>
+      <button class="swatch" data-hex="#8D2AA8"><span class="chip" style="background:#8d2aa8"></span><span class="info"><strong>Dusk Purple</strong> <code>#8D2AA8 · 100%</code></span></button>
+    </div>
+
+    <h3 class="palette-label">Core palette</h3>
+    <div class="swatches">
+      <button class="swatch" data-hex="#E8793E"><span class="chip" style="background:#e8793e"></span><span class="info"><strong>Accent</strong> <code>#E8793E</code></span></button>
+      <button class="swatch" data-hex="#B8501A"><span class="chip" style="background:#b8501a"></span><span class="info"><strong>Accent Text</strong> <code>#B8501A</code></span></button>
+      <button class="swatch" data-hex="#32122F"><span class="chip" style="background:#32122f"></span><span class="info"><strong>Plum Ink</strong> <code>#32122F</code></span></button>
+      <button class="swatch" data-hex="#FFAD67"><span class="chip" style="background:#ffad67"></span><span class="info"><strong>Ear Glow</strong> <code>#FFAD67</code></span></button>
+      <button class="swatch" data-hex="#FFF5E7"><span class="chip" style="background:#fff5e7; border-bottom:1px solid var(--line)"></span><span class="info"><strong>Fox Cream</strong> <code>#FFF5E7</code></span></button>
+      <button class="swatch" data-hex="#EFE9DC"><span class="chip" style="background:#efe9dc; border-bottom:1px solid var(--line)"></span><span class="info"><strong>Board Cream</strong> <code>#EFE9DC</code></span></button>
+    </div>
+
+    <h3 class="palette-label">Product surface — dark</h3>
+    <p class="palette-note">The app lives on a warm near-black. Semantic colors are muted and warm-shifted so evidence states read calmly, not like alarms.</p>
+    <div class="dark-panel">
+      <div class="swatches">
+        <button class="swatch" data-hex="#11110F"><span class="chip" style="background:#11110f"></span><span class="info"><strong>Ground</strong> <code>#11110F</code></span></button>
+        <button class="swatch" data-hex="#181816"><span class="chip" style="background:#181816"></span><span class="info"><strong>Surface</strong> <code>#181816</code></span></button>
+        <button class="swatch" data-hex="#20201D"><span class="chip" style="background:#20201d"></span><span class="info"><strong>Raised</strong> <code>#20201D</code></span></button>
+        <button class="swatch" data-hex="#F2F0EB"><span class="chip" style="background:#f2f0eb"></span><span class="info"><strong>Ink</strong> <code>#F2F0EB</code></span></button>
+        <button class="swatch" data-hex="#65B98A"><span class="chip" style="background:#65b98a"></span><span class="info"><strong>Verified</strong> <code>#65B98A</code></span></button>
+        <button class="swatch" data-hex="#D4AC52"><span class="chip" style="background:#d4ac52"></span><span class="info"><strong>Partial</strong> <code>#D4AC52</code></span></button>
+        <button class="swatch" data-hex="#DB726D"><span class="chip" style="background:#db726d"></span><span class="info"><strong>Unverified</strong> <code>#DB726D</code></span></button>
+        <button class="swatch" data-hex="#78A9D1"><span class="chip" style="background:#78a9d1"></span><span class="info"><strong>Review</strong> <code>#78A9D1</code></span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Typography ═══════════ -->
+  <section id="type">
+    <div class="section-head">
+      <h2>Typography</h2>
+      <p>Geist carries every register; Geist Mono is reserved for evidence: counts, scores, hashes, and code. Two families, no more.</p>
+    </div>
+
+    <div class="type-specimen">
+      <div class="giant">Sharp eyes,<br><em>honest evidence.</em></div>
+      <div class="alphabet">AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz 0123456789 →</div>
+    </div>
+
+    <div class="type-grid">
+      <div class="type-card">
+        <header><strong>Scale — Geist</strong><code>tracking tightens as size grows</code></header>
+        <div class="scale">
+          <div><span class="t-display">Display</span><code>clamp(34–60px) · 620 · -0.04em</code></div>
+          <div><span class="t-h2">Section heading</span><code>22–25px · 640 · -0.03em</code></div>
+          <div><span class="t-h3">Row title</span><code>16–17px · 620 · -0.02em</code></div>
+          <div><span class="t-body">Body runs at fourteen pixels with a relaxed 1.55 line height.</span><code>13–16px · 440 · 1.55lh</code></div>
+          <div><span class="t-caption">CAPTION &amp; LABELS</span><code>10–12px · 560 · +0.06em</code></div>
+        </div>
+      </div>
+      <div class="type-card">
+        <header><strong>Evidence — Geist Mono</strong><code>tabular numerals, always</code></header>
+        <div class="scale">
+          <div><span class="t-datum">14 / 17 claims</span><code>evidence counts</code></div>
+          <div><span class="t-datum">92.4</span><code>competency scores</code></div>
+          <div><span class="t-datum">a3f9c21</span><code>commit references</code></div>
+          <div><span class="t-body" style="font-family:'Geist Mono',monospace; font-size:12px">Q3 · React server components</span><code>step markers</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Verification voice ═══════════ -->
+  <section id="voice">
+    <div class="section-head">
+      <h2>Verification voice</h2>
+      <p>Foxy never says “great candidate.” Every judgment names its evidence and its state. Absence of public proof reads as uncertainty, never as deception.</p>
+    </div>
+
+    <div class="chain" role="list" aria-label="Verification chain">
+      <div class="chain-step" role="listitem"><span>01</span><strong>Claim</strong></div>
+      <svg class="chain-arrow" width="20" height="12" viewBox="0 0 20 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M0 6h17M13 1.5L18 6l-5 4.5"/></svg>
+      <div class="chain-step" role="listitem"><span>02</span><strong>Evidence</strong></div>
+      <svg class="chain-arrow" width="20" height="12" viewBox="0 0 20 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M0 6h17M13 1.5L18 6l-5 4.5"/></svg>
+      <div class="chain-step" role="listitem"><span>03</span><strong>Challenge</strong></div>
+      <svg class="chain-arrow" width="20" height="12" viewBox="0 0 20 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M0 6h17M13 1.5L18 6l-5 4.5"/></svg>
+      <div class="chain-step" role="listitem"><span>04</span><strong>Verification</strong></div>
+    </div>
+
+    <div class="status-board">
+      <div class="status-card">
+        <span class="status-chip st-verified"><i></i>Verified</span>
+        <p>Public evidence directly supports the claim and the candidate defended it under challenge.</p>
+        <span class="dark-chip"><span class="status-chip st-verified"><i></i>Verified</span></span>
+      </div>
+      <div class="status-card">
+        <span class="status-chip st-partial"><i></i>Partially verified</span>
+        <p>Some supporting evidence exists; depth or recency could not be fully confirmed.</p>
+        <span class="dark-chip"><span class="status-chip st-partial"><i></i>Partially verified</span></span>
+      </div>
+      <div class="status-card">
+        <span class="status-chip st-unverified"><i></i>Unverified</span>
+        <p>No public evidence found. Treated as a reason to probe in the interview, not as dishonesty.</p>
+        <span class="dark-chip"><span class="status-chip st-unverified"><i></i>Unverified</span></span>
+      </div>
+      <div class="status-card">
+        <span class="status-chip st-review"><i></i>Needs human review</span>
+        <p>Signals conflict or fall outside Foxy's confidence. A recruiter makes the final call.</p>
+        <span class="dark-chip"><span class="status-chip st-review"><i></i>Needs human review</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ Components & tokens ═══════════ -->
+  <section id="components">
+    <div class="section-head">
+      <h2>Components &amp; tokens</h2>
+      <p>Product controls live on the dark ground. Warm accent, quiet borders, 9–12&nbsp;px radii, and one exponential ease everywhere.</p>
+    </div>
+
+    <div class="comp-grid">
+      <div class="comp-dark">
+        <h3>Controls on ground</h3>
+        <div class="btn-row">
+          <button class="fx-btn fx-primary">Start interview</button>
+          <button class="fx-btn fx-secondary">Review evidence</button>
+        </div>
+        <input class="fx-input" type="text" placeholder="github.com/candidate" aria-label="Example input field">
+      </div>
+      <div class="token-list">
+        <div><span>Motion ease</span><code>cubic-bezier(0.23, 1, 0.32, 1)</code></div>
+        <div><span>UI durations</span><code>150–280ms</code></div>
+        <div><span>Control radius</span><code>9–10px</code></div>
+        <div><span>Card radius</span><code>12–14px</code></div>
+        <div><span>Control height</span><code>44–48px</code></div>
+        <div><span>Hairline</span><code>1px · #34332E dark / #E2D9C9 light</code></div>
+        <div><span>Focus ring</span><code>2px accent · 3px offset</code></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="kit-footer">
+    <span>Foxy — evidence-grounded technical vetting</span>
+    <span class="mono">brand kit v1.0 · foxy-mark.svg lives in /public</span>
+  </footer>
+
+</div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const toast = document.getElementById("toast");
+let toastTimer;
+document.querySelectorAll(".swatch[data-hex]").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const hex = btn.dataset.hex;
+    try { await navigator.clipboard.writeText(hex); } catch {}
+    toast.innerHTML = `Copied <code>${hex}</code> to clipboard`;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1600);
+  });
+});
+</script>
+</body>
+</html>
