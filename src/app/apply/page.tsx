@@ -336,7 +336,11 @@ export default function Home() {
       {inviteToken && inviteData === null && <div className="error-banner" role="alert"><span>This candidate invitation is invalid or no longer available.</span></div>}
 
       {stage === "candidate" && !loading && !inviteToken && jobLinkId && !error && (
-        <main className="role-picker"><div className="dashboard-empty">Preparing your application…</div></main>
+        <main className="analysis-loading">
+          <img className="foxy-runner" src="/foxy-loading.webp" alt="" width={280} height={180} />
+          <h1>Preparing your application</h1>
+          <p>Foxy is setting up your application. This only takes a moment.</p>
+        </main>
       )}
 
       {stage === "candidate" && !loading && !inviteToken && !jobLinkId && (
@@ -381,7 +385,7 @@ export default function Home() {
 
       {stage === "candidate" && loading && (
         <main className="analysis-loading">
-          <div className="scan-orbit"><FoxyMark size={42} /><i /><i /></div>
+          <img className="foxy-runner" src="/foxy-loading.webp" alt="" width={280} height={180} />
           <h1>Preparing your interview</h1>
           <p>This usually takes 15–30 seconds while Foxy connects your résumé claims with your public work.</p>
           <div className="loading-steps">{loadingMessages.map((message, index) => <div key={message} className={index < loadingStep ? "done" : index === loadingStep ? "active" : ""}><span>{index < loadingStep ? <Icon name="check" size={14} /> : index + 1}</span>{message}</div>)}</div>
