@@ -54,11 +54,18 @@ export const recruiterDashboard = query({
       return {
         ...job,
         applications: await Promise.all(applications.map(async (application) => {
-          const [candidate, result, recordings] = await Promise.all([
+          const [candidate, result, recordingRows, answerRows, questionRows] = await Promise.all([
             application.candidateId ? ctx.db.get(application.candidateId) : null,
             ctx.db.query("results").withIndex("by_application", (q) => q.eq("applicationId", application._id)).order("desc").first(),
-            ctx.db.query("recordings").withIndex("by_application", (q) => q.eq("applicationId", application._id)).collect(),
+            ctx.db.query("recordings").withIndex("by_application", (q) => q.eq("applicationId", application._id)).order("desc").collect(),
+            ctx.db.query("answers").withIndex("by_application", (q) => q.eq("applicationId", application._id)).order("desc").collect(),
+            ctx.db.query("questions").withIndex("by_application", (q) => q.eq("applicationId", application._id)).collect(),
           ]);
+          const recordings = [...new Map(recordingRows.map((recording) => [recording.type, recording])).values()];
+          const prompts = new Map(questionRows.map((question) => [question.data.id, { prompt: question.data.prompt as string, sequence: question.sequence as number }]));
+          const transcript = [...new Map(answerRows.map((answer) => [answer.questionId, answer])).values()]
+            .map((answer) => ({ questionId: answer.questionId, prompt: prompts.get(answer.questionId)?.prompt ?? "Question unavailable", sequence: prompts.get(answer.questionId)?.sequence ?? 0, answer: answer.transcript, score: answer.evaluation?.questionScore ?? null, status: answer.evaluation?.status ?? null }))
+            .sort((a, b) => a.sequence - b.sequence);
           return {
             _id: application._id,
             status: application.status,
@@ -66,6 +73,7 @@ export const recruiterDashboard = query({
             updatedAt: application.updatedAt,
             candidate,
             result,
+            transcript,
             recordings: await Promise.all(recordings.map(async (recording) => ({ type: recording.type, url: await ctx.storage.getUrl(recording.storageId), durationMs: recording.durationMs }))),
           };
         })),
@@ -111,7 +119,10 @@ export const submitCandidateProfile = mutation({
   handler: async (ctx, args) => {
     const application = await ctx.db.query("applications").withIndex("by_token", (q) => q.eq("inviteToken", args.inviteToken)).unique();
     if (!application) throw new Error("Invalid invitation");
+    if (["in_progress", "grading", "completed"].includes(application.status)) throw new Error("This invitation link has already been used for a completed or running interview. Ask the hiring team for a new invite.");
     let candidateId = application.candidateId;
+    const existingCandidate = candidateId ? await ctx.db.get(candidateId) : null;
+    if (existingCandidate && existingCandidate.githubUrl.toLowerCase() !== args.githubUrl.toLowerCase()) throw new Error("This invitation link is already assigned to another candidate. Ask the hiring team for a new invite.");
     if (candidateId) await ctx.db.patch(candidateId, { name: args.name, githubUrl: args.githubUrl, cvText: args.cvText });
     else candidateId = await ctx.db.insert("candidates", { applicationId: application._id, name: args.name, githubUrl: args.githubUrl, cvText: args.cvText, createdAt: Date.now() });
     await ctx.db.patch(application._id, { candidateId, status: "analyzing", error: undefined, updatedAt: Date.now() });

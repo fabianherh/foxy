@@ -22,6 +22,12 @@ export const saveRecording = mutation({
   handler: async (ctx, args) => {
     await requireApplication(ctx, args.applicationId, args.inviteToken);
     if (!(await ctx.db.system.get(args.storageId))) throw new Error("Uploaded recording not found");
+    const existing = (await ctx.db.query("recordings").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).collect()).find((item) => item.type === args.type);
+    if (existing) {
+      if (existing.storageId !== args.storageId) await ctx.storage.delete(existing.storageId);
+      await ctx.db.patch(existing._id, { storageId: args.storageId, mimeType: args.mimeType, size: args.size, durationMs: args.durationMs, createdAt: Date.now() });
+      return existing._id;
+    }
     return await ctx.db.insert("recordings", { applicationId: args.applicationId, type: args.type, storageId: args.storageId, mimeType: args.mimeType, size: args.size, durationMs: args.durationMs, createdAt: Date.now() });
   },
 });
