@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { demoRole } from "@/lib/intelligence/demo";
+import type { TechnicalAssessment } from "@/lib/intelligence/types";
+import { renderReportHtml, type ReportTranscriptEntry } from "@/lib/report-template";
 import { BrandLogo } from "../BrandLogo";
 
 function RecruiterAuth() {
@@ -59,6 +61,17 @@ function RecruiterDashboard() {
     finally { setWorking(false); }
   }
 
+  function downloadReport(input: { candidateName: string; githubUrl: string; roleTitle: string; report: TechnicalAssessment; transcript: ReportTranscriptEntry[]; recordings: Array<{ type: string; url: string | null }> }) {
+    const html = renderReportHtml(input);
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `foxy-report-${input.candidateName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "candidate"}.html`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function copyApplicationLink(jobPostingId: Id<"jobPostings">) {
     setError("");
     try {
@@ -79,7 +92,7 @@ function RecruiterDashboard() {
         <button type="button" className={`application-row application-row-button ${expanded ? "expanded" : ""}`} onClick={() => setOpenReport(expanded ? null : application._id)}><span>{application.candidate?.name ?? "Invite pending"}<small>{application.candidate?.githubUrl ?? "Waiting for candidate"}</small></span><span><i className={`application-status status-${application.status}`} />{application.status.replaceAll("_", " ")}</span><span>{application.result?.overallScore ?? "Not available"}</span><span>{application.result?.recommendation?.replaceAll("_", " ") ?? "Not available"}</span><span className="recording-links">{application.recordings.length ? application.recordings.map((recording) => recording.url ? <a key={recording.type} href={recording.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>{recording.type}</a> : null) : "Not available"}</span></button>
         {expanded && <div className="report-detail">
           {!report ? <p className="report-pending">The full report appears here when the interview is completed{application.transcript.length ? ` · ${application.transcript.length} answers so far` : ""}.</p> : <>
-            <header><div><span>Recommendation</span><strong className={`recommendation recommendation-${report.recommendation}`}>{report.recommendation.replaceAll("_", " ")}</strong></div><div><span>Overall score</span><b>{report.overallScore}</b></div></header>
+            <header><div><span>Recommendation</span><strong className={`recommendation recommendation-${report.recommendation}`}>{report.recommendation.replaceAll("_", " ")}</strong></div><div><span>Overall score</span><b>{report.overallScore}</b></div><button className="secondary-button" type="button" onClick={() => downloadReport({ candidateName: application.candidate?.name ?? "Candidate", githubUrl: application.candidate?.githubUrl ?? "", roleTitle: job.title, report: report as TechnicalAssessment, transcript: application.transcript, recordings: application.recordings })}>Download report</button></header>
             <p className="report-summary">{report.summary}</p>
             <div className="report-columns">
               <div><h4>Strengths</h4>{report.strengths.length ? report.strengths.map((item: string) => <p key={item}>{item}</p>) : <p>None verified yet.</p>}</div>
