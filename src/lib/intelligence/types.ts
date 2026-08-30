@@ -85,11 +85,20 @@ export interface CandidateIntelligence {
   competencies: CompetencyEvidence[];
 }
 
+export interface QuestionChoice {
+  id: string;
+  label: string;
+}
+
 export interface InterviewQuestion {
   id: string;
   competencyId: string;
   kind: QuestionKind;
+  format?: "open" | "code_multiple_choice";
   prompt: string;
+  codeSnippet?: string;
+  codeLanguage?: string;
+  choices?: QuestionChoice[];
   rationale: string;
   evidenceRefs: string[];
   expectedSignals: string[];
@@ -97,11 +106,25 @@ export interface InterviewQuestion {
   parentQuestionId?: string;
 }
 
+export interface QuestionSubscores {
+  technicalAccuracy: number;
+  depthOfUnderstanding: number;
+  requirementAlignment: number;
+}
+
+export interface AuthenticityAssessment {
+  status: "consistent" | "insufficient_evidence" | "inconsistent_with_repository_evidence";
+  rationale: string;
+}
+
 export interface AnswerEvaluation {
   questionId: string;
   competencyId: string;
   answer: string;
   score: number;
+  questionScore: number;
+  subscores: QuestionSubscores;
+  authenticity: AuthenticityAssessment;
   status: VerificationStatus;
   confidence: number;
   demonstratedSignals: string[];
@@ -116,10 +139,26 @@ export interface CompetencyVerdict {
   competencyName: string;
   status: VerificationStatus;
   score: number;
+  subscores: QuestionSubscores;
+  mustHave: boolean;
+  demonstrated: boolean;
   confidence: number;
   rationale: string;
   evidenceRefs: string[];
   answerRefs: string[];
+}
+
+export interface MustHaveResult {
+  competencyId: string;
+  competencyName: string;
+  demonstrated: boolean;
+}
+
+export interface AuthenticityFlag {
+  questionId: string;
+  competencyId: string;
+  rationale: string;
+  evidenceRefs: string[];
 }
 
 export interface TechnicalAssessment {
@@ -131,6 +170,8 @@ export interface TechnicalAssessment {
   strengths: string[];
   risks: string[];
   competencies: CompetencyVerdict[];
+  mustHaves: MustHaveResult[];
+  authenticityFlags: AuthenticityFlag[];
   generatedAt: number;
 }
 

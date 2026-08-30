@@ -79,6 +79,10 @@ function validateQuestion(value: unknown): InterviewQuestion {
   if (!Array.isArray(question.expectedSignals) || !Array.isArray(question.evidenceRefs) || typeof question.sequence !== "number") throw new Error("question must include expectedSignals, evidenceRefs, and sequence");
   question.expectedSignals.forEach((signal, index) => string(signal, `expectedSignals[${index}]`, 200));
   question.evidenceRefs.forEach((reference, index) => string(reference, `evidenceRefs[${index}]`, 200));
+  if (question.format === "code_multiple_choice") {
+    string(question.codeSnippet, "question.codeSnippet", 2000);
+    if (!Array.isArray(question.choices) || question.choices.length !== 4) throw new Error("Code questions must include four choices");
+  }
   return question as unknown as InterviewQuestion;
 }
 
@@ -88,7 +92,9 @@ function validateEvaluations(value: unknown): AnswerEvaluation[] {
     const evaluation = object(entry, `evaluations[${index}]`);
     string(evaluation.questionId, `evaluations[${index}].questionId`, 200);
     string(evaluation.competencyId, `evaluations[${index}].competencyId`, 100);
-    if (typeof evaluation.score !== "number" || typeof evaluation.confidence !== "number" || !Array.isArray(evaluation.evidenceRefs)) throw new Error(`evaluations[${index}] has invalid score, confidence, or evidenceRefs`);
+    const subscores = object(evaluation.subscores, `evaluations[${index}].subscores`);
+    const authenticity = object(evaluation.authenticity, `evaluations[${index}].authenticity`);
+    if (typeof evaluation.score !== "number" || typeof evaluation.questionScore !== "number" || typeof evaluation.confidence !== "number" || typeof subscores.technicalAccuracy !== "number" || typeof subscores.depthOfUnderstanding !== "number" || typeof subscores.requirementAlignment !== "number" || typeof authenticity.status !== "string" || !Array.isArray(evaluation.evidenceRefs)) throw new Error(`evaluations[${index}] has invalid scores, authenticity, confidence, or evidenceRefs`);
   });
   return value as AnswerEvaluation[];
 }

@@ -13,12 +13,16 @@ const questionSchema = {
         properties: {
           competencyId: { type: "string" },
           kind: { type: "string", enum: ["baseline", "evidence_probe", "gap_probe"] },
+          format: { type: "string", enum: ["open", "code_multiple_choice"] },
           prompt: { type: "string" },
+          codeSnippet: { type: ["string", "null"] },
+          codeLanguage: { type: ["string", "null"] },
+          choices: { type: "array", items: { type: "object", properties: { id: { type: "string" }, label: { type: "string" } }, required: ["id", "label"], additionalProperties: false } },
           rationale: { type: "string" },
           evidenceRefs: { type: "array", items: { type: "string" } },
           expectedSignals: { type: "array", items: { type: "string" } },
         },
-        required: ["competencyId", "kind", "prompt", "rationale", "evidenceRefs", "expectedSignals"],
+        required: ["competencyId", "kind", "format", "prompt", "codeSnippet", "codeLanguage", "choices", "rationale", "evidenceRefs", "expectedSignals"],
         additionalProperties: false,
       },
     },
@@ -27,7 +31,8 @@ const questionSchema = {
   additionalProperties: false,
 } as const;
 
-type GeneratedQuestions = { questions: Array<Omit<InterviewQuestion, "id" | "sequence">> };
+type GeneratedQuestion = Omit<InterviewQuestion, "id" | "sequence" | "codeSnippet" | "codeLanguage"> & { codeSnippet: string | null; codeLanguage: string | null };
+type GeneratedQuestions = { questions: GeneratedQuestion[] };
 
 function fallbackQuestions(intelligence: CandidateIntelligence): InterviewQuestion[] {
   const questions = intelligence.competencies.map((item, index) => {
@@ -43,6 +48,7 @@ function fallbackQuestions(intelligence: CandidateIntelligence): InterviewQuesti
       id: `question-${index}`,
       competencyId: item.competency.id,
       kind,
+      format: "open" as const,
       prompt,
       rationale: item.rationale,
       evidenceRefs: project ? [project.id] : [],
@@ -57,6 +63,7 @@ function fallbackQuestions(intelligence: CandidateIntelligence): InterviewQuesti
       id: `question-${questions.length}`,
       competencyId: weakest.competency.id,
       kind: "gap_probe",
+      format: "open",
       prompt: `Tell me about a time ${weakest.competency.name} failed in production or behaved unexpectedly. How did you isolate the cause, and what did you change afterward?`,
       rationale: `A second probe is warranted because evidence for ${weakest.competency.name} is ${weakest.strength}.`,
       evidenceRefs: weakest.evidence.map((item) => item.id),
@@ -64,7 +71,46 @@ function fallbackQuestions(intelligence: CandidateIntelligence): InterviewQuesti
       sequence: questions.length,
     });
   }
-  return questions.slice(0, 7);
+  return ensureCodingQuestions(questions.slice(0, 7), intelligence);
+}
+
+function ensureCodingQuestions(questions: InterviewQuestion[], intelligence: CandidateIntelligence): InterviewQuestion[] {
+  const validCodeQuestions = questions.filter((question) => question.format === "code_multiple_choice" && question.codeSnippet && question.choices?.length === 4);
+  if (validCodeQuestions.length) return questions;
+  const result = [...questions];
+  const reactIndex = result.findIndex((question) => intelligence.role.competencies.find((item) => item.id === question.competencyId)?.name.toLowerCase().includes("react"));
+  if (reactIndex >= 0) result[reactIndex] = {
+    ...result[reactIndex],
+    format: "code_multiple_choice",
+    prompt: "Why might clicking Add fail to render the new item, and what is the best fix?",
+    codeLanguage: "tsx",
+    codeSnippet: `const [items, setItems] = useState<string[]>([]);\n\nfunction addItem(item: string) {\n  items.push(item);\n  setItems(items);\n}`,
+    choices: [
+      { id: "a", label: "React state updates are asynchronous, so wrap setItems in setTimeout." },
+      { id: "b", label: "The array reference is unchanged; create a new array with setItems([...items, item])." },
+      { id: "c", label: "useState cannot store arrays; replace it with useRef." },
+      { id: "d", label: "items.push returns the wrong type; call setItems(items.push(item))." },
+    ],
+    expectedSignals: ["Correct choice: b", "React compares state references", "immutable state update"],
+    rationale: "Tests practical React state and rendering understanding with executable-looking code.",
+  };
+  const backendIndex = result.findIndex((question, index) => index !== reactIndex && /backend|api|typescript/i.test(intelligence.role.competencies.find((item) => item.id === question.competencyId)?.name ?? ""));
+  if (backendIndex >= 0 && result.length >= 6) result[backendIndex] = {
+    ...result[backendIndex],
+    format: "code_multiple_choice",
+    prompt: "What is the most important production issue in this API helper?",
+    codeLanguage: "typescript",
+    codeSnippet: `async function getUser(id: string) {\n  try {\n    return await db.user.findUnique({ where: { id } });\n  } catch (error) {\n    console.log(error);\n  }\n}`,
+    choices: [
+      { id: "a", label: "findUnique should never be awaited." },
+      { id: "b", label: "The id parameter must be a number." },
+      { id: "c", label: "Database failures are swallowed and callers receive undefined without a typed error path." },
+      { id: "d", label: "try/catch cannot be used inside async functions." },
+    ],
+    expectedSignals: ["Correct choice: c", "errors are swallowed", "typed error handling", "observability"],
+    rationale: "Tests backend error-boundary and API contract judgment.",
+  };
+  return result;
 }
 
 function compactIntelligence(intelligence: CandidateIntelligence) {
@@ -87,20 +133,24 @@ export async function generateInterviewQuestions(intelligence: CandidateIntellig
   const generated = await generateStructured<GeneratedQuestions>(
     "foxy_interview_questions",
     questionSchema,
-    "You are a rigorous, fair senior full-stack software interviewer. Generate 5-7 concise spoken questions grounded only in the supplied role, claims, and evidence. Cover every required competency. Probe weak or absent evidence harder without treating absence as dishonesty. Ask for concrete personal contributions, decisions, trade-offs, failure modes, and validation. Never infer protected characteristics or assess communication style, accent, personality, or culture fit. Evidence refs must be IDs present in the input. Keep each prompt under 55 words.",
+    "You are a rigorous, fair senior full-stack software interviewer. Generate 5-7 concise questions grounded only in the supplied role, claims, and evidence. Include 1-2 code_multiple_choice questions with a realistic short code snippet and exactly four plausible choices when the role has coding competencies; use open format for all others. Cover every required competency. Probe weak or absent evidence harder without treating absence as dishonesty. Ask for concrete personal contributions, decisions, trade-offs, failure modes, and validation. Never infer protected characteristics or assess communication style, accent, personality, or culture fit. Evidence refs must be IDs present in the input. Keep each prompt under 55 words.",
     compactIntelligence(intelligence),
   );
   const allowedCompetencies = new Set(intelligence.role.competencies.map((item) => item.id));
   const allowedEvidence = new Set(intelligence.webEvidence.projects.map((item) => item.id));
   if (!generated?.questions?.length) return fallbackQuestions(intelligence);
-  const questions = generated.questions.filter((item) => allowedCompetencies.has(item.competencyId) && item.prompt?.trim()).slice(0, 7).map((item, index) => ({
+  const questions: InterviewQuestion[] = generated.questions.filter((item) => allowedCompetencies.has(item.competencyId) && item.prompt?.trim()).slice(0, 7).map((item, index) => ({
     ...item,
     id: `question-${index}`,
+    format: item.format === "code_multiple_choice" ? "code_multiple_choice" : "open",
     prompt: item.prompt.trim().slice(0, 600),
+    codeSnippet: item.codeSnippet?.slice(0, 2000),
+    codeLanguage: item.codeLanguage?.slice(0, 30),
+    choices: item.choices?.map((choice) => ({ id: choice.id.slice(0, 20), label: choice.label.slice(0, 500) })).slice(0, 4),
     rationale: item.rationale.trim().slice(0, 600),
     evidenceRefs: item.evidenceRefs.filter((id) => allowedEvidence.has(id)),
     expectedSignals: item.expectedSignals.map((signal) => signal.trim()).filter(Boolean).slice(0, 8),
     sequence: index,
   }));
-  return questions.length >= 5 ? questions : fallbackQuestions(intelligence);
+  return questions.length >= 5 ? ensureCodingQuestions(questions, intelligence) : fallbackQuestions(intelligence);
 }

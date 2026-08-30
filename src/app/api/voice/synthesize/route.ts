@@ -36,7 +36,8 @@ export async function POST(request: Request) {
       voiceSettings: { stability: 0.55, similarityBoost: 0.75, style: 0.15, useSpeakerBoost: true },
     });
     return new Response(audio, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=300" } });
-  } catch {
+  } catch (error) {
+    console.error("ElevenLabs synthesis failed", error instanceof Error ? { name: error.name, message: error.message } : { name: "UnknownError" });
     return Response.json({ error: "Voice synthesis failed", fallback: "browser_speech_synthesis" }, { status: 502 });
   }
 }

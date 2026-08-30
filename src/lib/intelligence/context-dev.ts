@@ -92,12 +92,12 @@ function normalize(data: ExtractedData, requestedUrl: string, analyzedUrls: stri
 }
 
 async function extractUrl(url: string, apiKey: string, index: number): Promise<{ projects: ProjectEvidence[]; claims: CandidateClaim[]; technologies: string[]; analyzedUrls: string[] }> {
-  parsePublicUrl(url);
+  const normalizedUrl = parsePublicUrl(url).toString();
   const response = await fetch(CONTEXT_API, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "X-Context-Tag": "foxy-candidate-evidence" },
     body: JSON.stringify({
-      url,
+      url: normalizedUrl,
       schema: evidenceSchema,
       instructions: "Analyze only public evidence connected to this candidate. Prioritize repositories, project pages, READMEs, source structure, tests, API/database configuration, and deployment files. Do not infer technologies without visible support. Preserve direct URLs and short supporting excerpts.",
       factCheck: true,
@@ -111,8 +111,8 @@ async function extractUrl(url: string, apiKey: string, index: number): Promise<{
   });
   const payload = await response.json().catch(() => ({})) as ContextResponse;
   if (!response.ok) throw new Error(`Context.dev extraction failed (${response.status}): ${payload.message || payload.error || "unknown error"}`);
-  const analyzedUrls = payload.urls_analyzed ?? payload.urlsAnalyzed ?? [url];
-  return { ...normalize(payload.data ?? {}, url, analyzedUrls, index), analyzedUrls };
+  const analyzedUrls = payload.urls_analyzed ?? payload.urlsAnalyzed ?? [normalizedUrl];
+  return { ...normalize(payload.data ?? {}, normalizedUrl, analyzedUrls, index), analyzedUrls };
 }
 
 export async function extractWebEvidence(urls: string[], fallback?: WebEvidenceBundle): Promise<WebEvidenceBundle> {

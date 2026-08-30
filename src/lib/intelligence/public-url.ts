@@ -5,8 +5,13 @@ function privateIpv4(hostname: string): boolean {
   return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224;
 }
 
+export function normalizePublicUrl(value: string): string {
+  const trimmed = value.trim();
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 export function parsePublicUrl(value: string): URL {
-  const url = new URL(value);
+  const url = new URL(normalizePublicUrl(value));
   if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("Only public HTTP(S) URLs can be analyzed");
   const hostname = url.hostname.toLowerCase();
   const privateName = hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local") || hostname.endsWith(".internal");

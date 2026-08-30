@@ -38,6 +38,10 @@ describe("candidate intelligence", () => {
     const awsQuestion = questions.find((question) => question.competencyId === "aws");
     expect(awsQuestion?.kind).toBe("gap_probe");
     expect(awsQuestion?.prompt).toContain("couldn't find public implementation evidence");
+    const codeQuestions = questions.filter((question) => question.format === "code_multiple_choice");
+    expect(codeQuestions.length).toBeGreaterThanOrEqual(1);
+    expect(codeQuestions.length).toBeLessThanOrEqual(2);
+    expect(codeQuestions.every((question) => question.codeSnippet && question.choices?.length === 4)).toBe(true);
   });
 
   it("creates an adaptive follow-up for an insufficient answer", async () => {
@@ -47,6 +51,9 @@ describe("candidate intelligence", () => {
     expect(evaluation.status).toBe("needs_human_review");
     expect(evaluation.followUp?.kind).toBe("adaptive_follow_up");
     expect(evaluation.evidenceRefs).toEqual(question.evidenceRefs);
+    expect(evaluation.questionScore).toBeCloseTo((evaluation.subscores.technicalAccuracy + evaluation.subscores.depthOfUnderstanding + evaluation.subscores.requirementAlignment) / 3, 1);
+    expect(evaluation.score).toBe(Math.round(evaluation.questionScore * 10));
+    expect(evaluation.authenticity.status).toBe("insufficient_evidence");
   });
 
   it("never advances when required competencies have no interview answers", async () => {
@@ -54,6 +61,8 @@ describe("candidate intelligence", () => {
     const report = await buildTechnicalAssessment(intelligence, []);
     expect(report.recommendation).toBe("human_review");
     expect(report.competencies.every((item) => item.status === "needs_human_review")).toBe(true);
+    expect(report.mustHaves).toHaveLength(5);
+    expect(report.authenticityFlags).toEqual([]);
   });
 
   it("keeps the synthetic demo deterministic without an external request", async () => {
@@ -71,8 +80,9 @@ describe("candidate intelligence", () => {
   });
 
   it("accepts an application without a résumé", () => {
-    const request = parseAnalyzeRequest({ candidate: { id: "candidate", name: "Alex", githubUrl: "https://github.com/octocat" }, role: demoRole });
+    const request = parseAnalyzeRequest({ candidate: { id: "candidate", name: "Alex", githubUrl: "github.com/octocat" }, role: demoRole });
     expect(request.candidate.cvText).toBe("");
+    expect(request.candidate.githubUrl).toBe("https://github.com/octocat");
   });
 
   it("rejects private and metadata URLs", () => {
