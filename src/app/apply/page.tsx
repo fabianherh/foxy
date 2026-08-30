@@ -337,7 +337,7 @@ export default function Home() {
 
       {stage === "candidate" && !loading && !inviteToken && jobLinkId && !error && (
         <main className="analysis-loading">
-          <img className="foxy-runner" src="/foxy-loading.webp" alt="" width={280} height={180} />
+          <img className="foxy-runner" src="/foxy-loading.webp" alt="" width={190} height={122} />
           <h1>Preparing your application</h1>
           <p>Foxy is setting up your application. This only takes a moment.</p>
         </main>
@@ -385,7 +385,7 @@ export default function Home() {
 
       {stage === "candidate" && loading && (
         <main className="analysis-loading">
-          <img className="foxy-runner" src="/foxy-loading.webp" alt="" width={280} height={180} />
+          <img className="foxy-runner" src="/foxy-loading.webp" alt="" width={190} height={122} />
           <h1>Preparing your interview</h1>
           <p>This usually takes 15–30 seconds while Foxy connects your résumé claims with your public work.</p>
           <div className="loading-steps">{loadingMessages.map((message, index) => <div key={message} className={index < loadingStep ? "done" : index === loadingStep ? "active" : ""}><span>{index < loadingStep ? <Icon name="check" size={14} /> : index + 1}</span>{message}</div>)}</div>
