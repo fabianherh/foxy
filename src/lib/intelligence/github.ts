@@ -19,14 +19,29 @@ export function extractGithubUsername(value: string): string {
   return username;
 }
 
+export function normalizeGithubProfileUrl(value: string): string {
+  return `https://github.com/${extractGithubUsername(value)}`;
+}
+
+export const GITHUB_UNAVAILABLE = "GitHub profile validation is temporarily unavailable";
+
 export async function validateGithubProfile(value: string): Promise<GithubProfile> {
   const username = extractGithubUsername(value);
-  const response = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "Foxy-AI-Interviewer", "X-GitHub-Api-Version": "2022-11-28" },
-    signal: AbortSignal.timeout(10000),
-  });
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "Foxy-AI-Interviewer", "X-GitHub-Api-Version": "2022-11-28" };
+  const token = process.env.GITHUB_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let response: Response;
+  try {
+    response = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers, signal: AbortSignal.timeout(10000) });
+  } catch {
+    throw new Error(GITHUB_UNAVAILABLE);
+  }
   if (response.status === 404) throw new Error("This GitHub profile does not exist or is not publicly accessible");
-  if (!response.ok) throw new Error("GitHub profile validation is temporarily unavailable");
+  if (response.status === 403 || response.status === 429) {
+    console.error(`GitHub API rate limited (${response.status}) while validating ${username}`);
+    throw new Error(GITHUB_UNAVAILABLE);
+  }
+  if (!response.ok) throw new Error(GITHUB_UNAVAILABLE);
   const profile = await response.json() as { login?: string; html_url?: string; name?: string | null; avatar_url?: string; public_repos?: number; bio?: string | null; type?: string };
   if (profile.type !== "User" || !profile.login || !profile.html_url) throw new Error("This URL is not a public GitHub user profile");
   return {
