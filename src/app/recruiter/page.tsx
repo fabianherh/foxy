@@ -29,7 +29,6 @@ function RecruiterDashboard() {
   const { signOut } = useAuthActions();
   const ensureProfile = useMutation(api.applications.ensureRecruiterProfile);
   const createJob = useMutation(api.applications.createJob);
-  const createInvite = useMutation(api.applications.createInvite);
   const jobs = useQuery(api.applications.recruiterDashboard);
   const [working, setWorking] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
@@ -60,15 +59,12 @@ function RecruiterDashboard() {
     finally { setWorking(false); }
   }
 
-  async function invite(jobPostingId: Id<"jobPostings">) {
-    setWorking(true); setError("");
+  async function copyApplicationLink(jobPostingId: Id<"jobPostings">) {
+    setError("");
     try {
-      const token = `${crypto.randomUUID()}${crypto.randomUUID()}`;
-      await createInvite({ jobPostingId, inviteToken: token });
-      await navigator.clipboard.writeText(`${window.location.origin}/apply?invite=${token}`);
-      setCopied(token);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not create an invitation"); }
-    finally { setWorking(false); }
+      await navigator.clipboard.writeText(`${window.location.origin}/apply?job=${jobPostingId}`);
+      setCopied(jobPostingId);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not copy the application link"); }
   }
 
   return <main className="recruiter-shell">
@@ -76,7 +72,7 @@ function RecruiterDashboard() {
     <section className="recruiter-head"><div><h1>Technical hiring, with receipts.</h1><p>Create multiple roles, invite candidates, and watch progress update in real time.</p></div><button className="primary-button" onClick={() => setShowComposer((value) => !value)}>{showComposer ? "Close composer" : "Create job"}</button></section>
     {error && <div className="dashboard-error">{error}</div>}
     {showComposer && <section className="job-composer"><header><div><h2>Create a new job</h2><p>Define the role and the competencies Foxy should verify.</p></div><button className="secondary-button" type="button" onClick={fillDemoData}>Fill with demo data</button></header><form onSubmit={addRole}><label><span>Job title</span><input value={title} onChange={(event) => { setTitle(event.target.value); setUsingDemo(false); }} placeholder="e.g. Senior Backend Engineer" required /></label><label><span>Job description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What will this person own and what does success look like?" required /></label><label><span>Required competencies</span><input value={skills} onChange={(event) => { setSkills(event.target.value); setUsingDemo(false); }} placeholder="Node.js, PostgreSQL, API design, Testing" required /><small>Separate competencies with commas</small></label><div><button type="button" className="text-button" onClick={() => setShowComposer(false)}>Cancel</button><button className="primary-button" disabled={working}>{working ? "Creating…" : "Create job"}</button></div></form></section>}
-    {jobs === undefined ? <div className="dashboard-empty">Loading workspace…</div> : jobs.length === 0 ? <div className="dashboard-empty"><h2>No active roles</h2><p>Create a custom role or use the demo data to start.</p></div> : <section className="job-list">{jobs.map((job) => <article key={job._id} className="job-panel"><header><div><span className="role-type">Open role</span><h2>{job.title}</h2>{job.description && <p className="job-description">{job.description}</p>}<p>{job.competencies.length} competencies · {job.applications.length} applications</p></div><button className="secondary-button" onClick={() => invite(job._id)} disabled={working}>Copy candidate invite</button></header><div className="application-table"><div className="table-head"><span>Candidate</span><span>Status</span><span>Score</span><span>Recommendation</span><span>Proctoring</span></div>{job.applications.length === 0 ? <div className="table-empty">No candidates yet. Copy an invite to start.</div> : job.applications.map((application) => {
+    {jobs === undefined ? <div className="dashboard-empty">Loading workspace…</div> : jobs.length === 0 ? <div className="dashboard-empty"><h2>No active roles</h2><p>Create a custom role or use the demo data to start.</p></div> : <section className="job-list">{jobs.map((job) => <article key={job._id} className="job-panel"><header><div><span className="role-type">Open role</span><h2>{job.title}</h2>{job.description && <p className="job-description">{job.description}</p>}<p>{job.competencies.length} competencies · {job.applications.length} applications</p></div><button className="secondary-button" onClick={() => copyApplicationLink(job._id)}>{copied === job._id ? "Link copied" : "Copy application link"}</button></header><div className="application-table"><div className="table-head"><span>Candidate</span><span>Status</span><span>Score</span><span>Recommendation</span><span>Proctoring</span></div>{job.applications.length === 0 ? <div className="table-empty">No candidates yet. Copy the application link and share it with candidates.</div> : job.applications.map((application) => {
       const report = application.result?.data;
       const expanded = openReport === application._id;
       return <div key={application._id}>
@@ -95,7 +91,7 @@ function RecruiterDashboard() {
           {application.transcript.length > 0 && <div className="report-transcript"><h4>Interview transcript</h4>{application.transcript.map((entry) => <div key={entry.questionId}><p className="transcript-question">{entry.prompt}</p><p className="transcript-answer">{entry.answer}</p>{entry.score !== null && <small>{entry.score}/10{entry.status ? ` · ${String(entry.status).replaceAll("_", " ")}` : ""}</small>}</div>)}</div>}
         </div>}
       </div>;
-    })}</div>{copied && job.applications.some((application) => application.inviteToken === copied) && <p className="copy-notice">Invite copied. Open it in a private window to test the candidate flow.</p>}</article>)}</section>}
+    })}</div>{copied === job._id && <p className="copy-notice">Application link copied. One link works for every candidate — each visitor gets their own application.</p>}</article>)}</section>}
   </main>;
 }
 

@@ -50,7 +50,8 @@ export const recruiterDashboard = query({
     const ownerId = await requireUser(ctx);
     const jobs = await ctx.db.query("jobPostings").withIndex("by_owner", (q) => q.eq("ownerId", ownerId)).order("desc").collect();
     return await Promise.all(jobs.map(async (job) => {
-      const applications = await ctx.db.query("applications").withIndex("by_job", (q) => q.eq("jobPostingId", job._id)).order("desc").collect();
+      const applicationRows = await ctx.db.query("applications").withIndex("by_job", (q) => q.eq("jobPostingId", job._id)).order("desc").collect();
+      const applications = applicationRows.filter((application) => application.candidateId);
       return {
         ...job,
         applications: await Promise.all(applications.map(async (application) => {

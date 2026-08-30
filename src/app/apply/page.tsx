@@ -22,6 +22,7 @@ const stages: Array<{ id: Stage; label: string }> = [
 const loadingMessages = ["Reading CV claims", "Reviewing public GitHub work", "Mapping evidence to competencies", "Generating interview challenges"];
 const subscribeToLocation = () => () => {};
 const getInviteToken = () => new URLSearchParams(window.location.search).get("invite") ?? "";
+const getJobParam = () => new URLSearchParams(window.location.search).get("job") ?? "";
 
 function Icon({ name, size = 18 }: { name: "arrow" | "check" | "github" | "mic" | "play" | "stop" | "refresh" | "link"; size?: number }) {
   const paths = {
@@ -54,6 +55,7 @@ function AppHeader({ stage, onReset }: { stage: Stage; onReset: () => void }) {
 
 export default function Home() {
   const urlInviteToken = useSyncExternalStore(subscribeToLocation, getInviteToken, () => "");
+  const jobLinkId = useSyncExternalStore(subscribeToLocation, getJobParam, () => "");
   const [selfServeToken, setSelfServeToken] = useState("");
   const inviteToken = urlInviteToken || selfServeToken;
   const [applicationId, setApplicationId] = useState<Id<"applications"> | null>(null);
@@ -120,6 +122,24 @@ export default function Home() {
   const currentQuestion = questions[questionIndex];
   const currentCompetency = analysis?.intelligence.competencies.find((item) => item.competency.id === currentQuestion?.competencyId);
 
+  const claimingJobLink = useRef(false);
+  useEffect(() => {
+    if (!jobLinkId || urlInviteToken || selfServeToken || claimingJobLink.current) return;
+    claimingJobLink.current = true;
+    const storageKey = `foxy-apply-${jobLinkId}`;
+    const savedToken = window.sessionStorage.getItem(storageKey);
+    const token = savedToken ?? `${crypto.randomUUID()}${crypto.randomUUID()}`;
+    void (async () => {
+      try {
+        await applyToJob({ jobPostingId: jobLinkId as Id<"jobPostings">, inviteToken: token });
+        window.sessionStorage.setItem(storageKey, token);
+        setSelfServeToken(token);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "This application link is invalid or the role is no longer open.");
+      } finally { claimingJobLink.current = false; }
+    })();
+  }, [jobLinkId, urlInviteToken, selfServeToken, applyToJob]);
+
   async function chooseRole(jobPostingId: Id<"jobPostings">) {
     setError("");
     try {
@@ -132,7 +152,7 @@ export default function Home() {
   function applyToAnotherRole() {
     reset();
     setSelfServeToken(""); setApplicationId(null);
-    if (urlInviteToken) window.history.replaceState(null, "", "/apply");
+    if (urlInviteToken || jobLinkId) window.history.replaceState(null, "", "/apply");
   }
 
   function reset() {
@@ -309,7 +329,11 @@ export default function Home() {
       {error && <div className="error-banner" role="alert"><span>{error}</span><button onClick={() => setError("")}>Dismiss</button></div>}
       {inviteToken && inviteData === null && <div className="error-banner" role="alert"><span>This candidate invitation is invalid or no longer available.</span></div>}
 
-      {stage === "candidate" && !loading && !inviteToken && (
+      {stage === "candidate" && !loading && !inviteToken && jobLinkId && !error && (
+        <main className="role-picker"><div className="dashboard-empty">Preparing your application…</div></main>
+      )}
+
+      {stage === "candidate" && !loading && !inviteToken && !jobLinkId && (
         <main className="role-picker">
           <div className="page-heading"><h1>Choose a role to apply for</h1><p>Every application runs an evidence-backed interview built from your public work. You can apply to as many roles as you like.</p></div>
           {openJobs === undefined ? <div className="dashboard-empty">Loading open roles…</div> : openJobs.length === 0 ? <div className="dashboard-empty"><h2>No open roles right now</h2><p>Ask the hiring team for a direct invitation link.</p></div> : <div className="role-list">{openJobs.map((job) => <article key={job._id}><div><span className="role-type">Open role</span><h2>{job.title}</h2>{job.description && <p>{job.description}</p>}<small>{job.competencyCount} competencies assessed</small></div><button className="primary-button" onClick={() => void chooseRole(job._id)}>Apply <Icon name="arrow" /></button></article>)}</div>}
