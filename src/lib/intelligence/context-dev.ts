@@ -91,9 +91,31 @@ function normalize(data: ExtractedData, requestedUrl: string, analyzedUrls: stri
   return { projects, claims, technologies: cleanStrings(data.technologies) };
 }
 
+async function fetchWithRetry(input: string, makeInit: () => Parameters<typeof fetch>[1], attempts = 2): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(input, makeInit());
+      if ((response.status >= 500 || response.status === 429) && attempt < attempts - 1) {
+        console.error(`Context.dev transient response ${response.status}, retrying (attempt ${attempt + 1}/${attempts})`);
+        await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        continue;
+      }
+      return response;
+    } catch (cause) {
+      lastError = cause;
+      if (attempt < attempts - 1) {
+        console.error(`Context.dev request failed (${cause instanceof Error ? cause.message : "network error"}), retrying (attempt ${attempt + 1}/${attempts})`);
+        await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Context.dev request failed");
+}
+
 async function extractUrl(url: string, apiKey: string, index: number): Promise<{ projects: ProjectEvidence[]; claims: CandidateClaim[]; technologies: string[]; analyzedUrls: string[] }> {
   const normalizedUrl = parsePublicUrl(url).toString();
-  const response = await fetch(CONTEXT_API, {
+  const response = await fetchWithRetry(CONTEXT_API, () => ({
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "X-Context-Tag": "foxy-candidate-evidence" },
     body: JSON.stringify({
@@ -108,7 +130,7 @@ async function extractUrl(url: string, apiKey: string, index: number): Promise<{
       maxAgeMs: 3600000,
     }),
     signal: AbortSignal.timeout(75000),
-  });
+  }));
   const payload = await response.json().catch(() => ({})) as ContextResponse;
   if (!response.ok) throw new Error(`Context.dev extraction failed (${response.status}): ${payload.message || payload.error || "unknown error"}`);
   const analyzedUrls = payload.urls_analyzed ?? payload.urlsAnalyzed ?? [normalizedUrl];

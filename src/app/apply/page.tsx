@@ -1,6 +1,7 @@
 "use client";
 
 import { useAction, useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -23,6 +24,11 @@ const loadingMessages = ["Reading CV claims", "Reviewing public GitHub work", "M
 const subscribeToLocation = () => () => {};
 const getInviteToken = () => new URLSearchParams(window.location.search).get("invite") ?? "";
 const getJobParam = () => new URLSearchParams(window.location.search).get("job") ?? "";
+
+function errorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof ConvexError) return typeof cause.data === "string" ? cause.data : fallback;
+  return cause instanceof Error ? cause.message : fallback;
+}
 
 function Icon({ name, size = 18 }: { name: "arrow" | "check" | "github" | "mic" | "play" | "stop" | "refresh" | "link"; size?: number }) {
   const paths = {
@@ -252,7 +258,7 @@ export default function Home() {
       }
       setAnalysis(data); setQuestions(data.questions); setStage("evidence");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not analyze this candidate. Check the inputs and try again.");
+      setError(errorMessage(cause, "Could not analyze this candidate. Check the inputs and try again."));
     } finally {
       setLoading(false);
     }

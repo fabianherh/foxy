@@ -1,6 +1,6 @@
 "use node";
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { analyzeCandidate } from "../src/lib/intelligence/engine";
 import { evaluateAnswer } from "../src/lib/intelligence/evaluation";
 import { buildTechnicalAssessment } from "../src/lib/intelligence/report";
@@ -12,16 +12,24 @@ export const analyzeApplication = action({
   handler: async (ctx, args) => {
     try {
       const { candidate, job } = await ctx.runQuery(internal.applications.getForAnalysis, args);
-      const result = await analyzeCandidate({
+      const input = {
         candidate: { id: candidate._id, name: candidate.name, githubUrl: candidate.githubUrl, cvText: candidate.cvText ?? "" },
         role: { id: job._id, title: job.title, competencies: job.competencies },
-      });
+      };
+      let result;
+      try {
+        result = await analyzeCandidate(input);
+      } catch (firstError) {
+        console.error("analyzeCandidate failed, retrying once:", firstError instanceof Error ? firstError.message : firstError);
+        result = await analyzeCandidate(input);
+      }
       await ctx.runMutation(internal.applications.storeAnalysis, { applicationId: args.applicationId, intelligence: result.intelligence, questions: result.questions });
       return { questions: result.questions, intelligence: result.intelligence };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Analysis failed";
+      console.error("analyzeApplication failed:", message);
       await ctx.runMutation(internal.applications.markFailed, { applicationId: args.applicationId, error: message });
-      throw error;
+      throw new ConvexError(`We could not analyze this application right now (${message}). Please try again.`);
     }
   },
 });
