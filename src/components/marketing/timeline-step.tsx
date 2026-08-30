@@ -5,7 +5,13 @@ import { motion, useReducedMotion } from "motion/react";
 
 const easeOut = [0.23, 1, 0.32, 1] as const;
 
-export function TimelineStep({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+export function TimelineStep({ index, title, artifact, showArrow = false, children }: {
+  index: number;
+  title: string;
+  artifact?: React.ReactNode;
+  showArrow?: boolean;
+  children: React.ReactNode;
+}) {
   const reducedMotion = useReducedMotion();
   return (
     <motion.article
@@ -25,6 +31,12 @@ export function TimelineStep({ index, title, children }: { index: number; title:
       />
       <h3>{title}</h3>
       <p>{children}</p>
+      {artifact && <div className="step-artifact">{artifact}</div>}
+      {showArrow && (
+        <svg className="step-arrow" aria-hidden="true" width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M0 7h18M14 1.5L20 7l-6 5.5" />
+        </svg>
+      )}
     </motion.article>
   );
 }
