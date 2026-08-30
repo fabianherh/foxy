@@ -24,10 +24,15 @@ export async function generateStructured<T>(name: string, schema: JsonSchema, sy
       signal: AbortSignal.timeout(35000),
     });
     const payload = await response.json().catch(() => ({})) as ChatCompletion;
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error(`OpenRouter request failed for ${name}`, { status: response.status, message: payload.error?.message });
+      return null;
+    }
     const content = payload.choices?.[0]?.message?.content;
+    if (!content) console.error(`OpenRouter returned no content for ${name}`);
     return content ? JSON.parse(content) as T : null;
-  } catch {
+  } catch (error) {
+    console.error(`OpenRouter call threw for ${name}`, error instanceof Error ? { name: error.name, message: error.message } : { name: "UnknownError" });
     return null;
   }
 }

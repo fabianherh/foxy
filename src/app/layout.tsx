@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Foxy · Evidence-backed technical interviews",
-  description: "Verify software engineering claims through public evidence and adaptive interviews.",
+  title: "Foxy | Evidence-backed technical interviews",
+  description: "Verify software engineering claims through public work, adaptive interviews, and transparent technical scoring.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

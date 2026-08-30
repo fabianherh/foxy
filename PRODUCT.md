@@ -24,7 +24,11 @@ A recruiter creates or selects a Full-Stack Software Engineer role, submits cand
 
 ## Capabilities and Constraints
 
-The hackathon MVP supports one role: Full-Stack Software Engineer. It assesses React, TypeScript, APIs and backend, databases, testing, Docker, and AWS. It does not include coding challenges, anti-cheating, LinkedIn scraping, ATS integration, scheduling, payments, company accounts, or multi-role support. Public evidence absence is treated as uncertainty rather than dishonesty. Every judgment must retain evidence references.
+The hackathon MVP lets authenticated recruiters create multiple technical jobs and invite candidates through secure links. Interviews support open responses, voice turns, and one or two code multiple-choice questions. Camera, screen, and paste signals are disclosed but never alter technical scoring automatically. It does not include LinkedIn scraping, ATS integration, scheduling, or payments. Public evidence absence is treated as uncertainty rather than dishonesty. Every judgment must retain evidence references.
+
+## Brand Commitments
+
+Foxy uses a pixel-art fox mark, deep plum typography, warm paper surfaces, and a coral-orange-magenta spectrum. Marketing is expressive and optimistic; recruiter and candidate workflows use the same identity with quieter, task-focused application.
 
 ## Evidence on Hand
 

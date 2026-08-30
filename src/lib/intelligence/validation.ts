@@ -39,7 +39,7 @@ export function parseAnalyzeRequest(value: unknown): AnalyzeCandidateRequest {
   const role = object(root.role, "role");
   if (!Array.isArray(role.competencies) || role.competencies.length < 1 || role.competencies.length > 10) throw new Error("role.competencies must contain 1-10 items");
   const githubUrl = candidate.githubUrl == null || candidate.githubUrl === "" ? undefined : publicUrl(candidate.githubUrl, "candidate.githubUrl");
-  if (githubUrl && new URL(githubUrl).hostname.toLowerCase() !== "github.com") throw new Error("candidate.githubUrl must be a public github.com URL");
+  if (githubUrl && !["github.com", "www.github.com"].includes(new URL(githubUrl).hostname.toLowerCase())) throw new Error("candidate.githubUrl must be a public github.com URL");
   const portfolioUrls = Array.isArray(candidate.portfolioUrls) ? candidate.portfolioUrls.map((url, index) => publicUrl(url, `portfolioUrls[${index}]`)).slice(0, 2) : [];
   if (!githubUrl && !portfolioUrls.length) throw new Error("At least one GitHub or portfolio URL is required");
   return {

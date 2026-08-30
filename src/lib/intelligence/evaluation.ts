@@ -63,13 +63,16 @@ function fallbackEvaluation(request: EvaluateAnswerRequest): GeneratedEvaluation
 }
 
 function createFollowUp(request: EvaluateAnswerRequest, generated: GeneratedEvaluation, questionScore: number): InterviewQuestion | undefined {
-  const priorFollowUps = (request.previousEvaluations ?? []).filter((item) => item.competencyId === request.question.competencyId && item.followUp).length;
-  if (!generated.suggestedFollowUp || priorFollowUps >= 2 || questionScore >= 7.8) return undefined;
+  const previous = request.previousEvaluations ?? [];
+  const priorFollowUps = previous.filter((item) => item.competencyId === request.question.competencyId && item.followUp).length;
+  const suggested = generated.suggestedFollowUp?.trim();
+  const alreadyAsked = suggested ? previous.some((item) => item.followUp?.prompt.trim().toLowerCase() === suggested.toLowerCase()) : false;
+  if (!suggested || alreadyAsked || priorFollowUps >= 1 || request.question.kind === "adaptive_follow_up" || questionScore >= 7.8) return undefined;
   return {
     id: `${request.question.id}-follow-up-${priorFollowUps + 1}`,
     competencyId: request.question.competencyId,
     kind: "adaptive_follow_up",
-    prompt: generated.suggestedFollowUp.slice(0, 600),
+    prompt: suggested.slice(0, 600),
     rationale: `The previous answer scored ${questionScore}/10 and needs clarification: ${generated.missingSignals.slice(0, 2).join(", ") || "technical specificity"}.`,
     evidenceRefs: request.question.evidenceRefs,
     expectedSignals: generated.missingSignals.slice(0, 5),

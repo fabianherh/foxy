@@ -76,7 +76,7 @@ function fallbackQuestions(intelligence: CandidateIntelligence): InterviewQuesti
 
 function ensureCodingQuestions(questions: InterviewQuestion[], intelligence: CandidateIntelligence): InterviewQuestion[] {
   const validCodeQuestions = questions.filter((question) => question.format === "code_multiple_choice" && question.codeSnippet && question.choices?.length === 4);
-  if (validCodeQuestions.length) return questions;
+  if (validCodeQuestions.length) return orderInterviewQuestions(questions);
   const result = [...questions];
   const reactIndex = result.findIndex((question) => intelligence.role.competencies.find((item) => item.id === question.competencyId)?.name.toLowerCase().includes("react"));
   if (reactIndex >= 0) result[reactIndex] = {
@@ -110,7 +110,21 @@ function ensureCodingQuestions(questions: InterviewQuestion[], intelligence: Can
     expectedSignals: ["Correct choice: c", "errors are swallowed", "typed error handling", "observability"],
     rationale: "Tests backend error-boundary and API contract judgment.",
   };
-  return result;
+  return orderInterviewQuestions(result);
+}
+
+function orderInterviewQuestions(questions: InterviewQuestion[]): InterviewQuestion[] {
+  const codeQuestions = questions.filter((question) => question.format === "code_multiple_choice");
+  if (!codeQuestions.length) return questions.map((question, sequence) => ({ ...question, sequence }));
+  const ordered = questions.filter((question) => question.format !== "code_multiple_choice");
+  const firstPosition = Math.min(Math.max(2, Math.floor(questions.length * 0.5)), ordered.length);
+  ordered.splice(firstPosition, 0, codeQuestions[0]);
+  if (codeQuestions[1]) {
+    const secondPosition = Math.min(Math.max(firstPosition + 2, questions.length - 2), ordered.length);
+    ordered.splice(secondPosition, 0, codeQuestions[1]);
+  }
+  for (const extra of codeQuestions.slice(2)) ordered.push(extra);
+  return ordered.map((question, sequence) => ({ ...question, sequence }));
 }
 
 function compactIntelligence(intelligence: CandidateIntelligence) {
@@ -133,7 +147,7 @@ export async function generateInterviewQuestions(intelligence: CandidateIntellig
   const generated = await generateStructured<GeneratedQuestions>(
     "foxy_interview_questions",
     questionSchema,
-    "You are a rigorous, fair senior full-stack software interviewer. Generate 5-7 concise questions grounded only in the supplied role, claims, and evidence. Include 1-2 code_multiple_choice questions with a realistic short code snippet and exactly four plausible choices when the role has coding competencies; use open format for all others. Cover every required competency. Probe weak or absent evidence harder without treating absence as dishonesty. Ask for concrete personal contributions, decisions, trade-offs, failure modes, and validation. Never infer protected characteristics or assess communication style, accent, personality, or culture fit. Evidence refs must be IDs present in the input. Keep each prompt under 55 words.",
+    "You are a rigorous, fair senior full-stack software interviewer. Generate 5-7 concise questions grounded only in the supplied role, claims, and evidence. Include 1-2 code_multiple_choice questions with a realistic short code snippet and exactly four plausible choices when the role has coding competencies; place them only after at least two conversational open questions, around the middle or final third, and use open format for all others. Cover every required competency. Probe weak or absent evidence harder without treating absence as dishonesty. Ask for concrete personal contributions, decisions, trade-offs, failure modes, and validation. Never infer protected characteristics or assess communication style, accent, personality, or culture fit. Evidence refs must be IDs present in the input. Keep each prompt under 55 words.",
     compactIntelligence(intelligence),
   );
   const allowedCompetencies = new Set(intelligence.role.competencies.map((item) => item.id));

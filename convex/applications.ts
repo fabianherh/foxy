@@ -56,7 +56,7 @@ export const recruiterDashboard = query({
         applications: await Promise.all(applications.map(async (application) => {
           const [candidate, result, recordings] = await Promise.all([
             application.candidateId ? ctx.db.get(application.candidateId) : null,
-            ctx.db.query("results").withIndex("by_application", (q) => q.eq("applicationId", application._id)).unique(),
+            ctx.db.query("results").withIndex("by_application", (q) => q.eq("applicationId", application._id)).order("desc").first(),
             ctx.db.query("recordings").withIndex("by_application", (q) => q.eq("applicationId", application._id)).collect(),
           ]);
           return {
@@ -71,6 +71,27 @@ export const recruiterDashboard = query({
         })),
       };
     }));
+  },
+});
+
+export const listOpenJobs = query({
+  args: {},
+  handler: async (ctx) => {
+    const jobs = await ctx.db.query("jobPostings").order("desc").collect();
+    return jobs.filter((job) => job.status === "open").map((job) => ({ _id: job._id, title: job.title, description: job.description, competencyCount: Array.isArray(job.competencies) ? job.competencies.length : 0 }));
+  },
+});
+
+export const applyToJob = mutation({
+  args: { jobPostingId: v.id("jobPostings"), inviteToken: v.string() },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.jobPostingId);
+    if (!job || job.status !== "open") throw new Error("This role is no longer open");
+    if (args.inviteToken.length < 32) throw new Error("Invalid application token");
+    const existing = await ctx.db.query("applications").withIndex("by_token", (q) => q.eq("inviteToken", args.inviteToken)).unique();
+    if (existing) return existing._id;
+    const now = Date.now();
+    return await ctx.db.insert("applications", { jobPostingId: args.jobPostingId, inviteToken: args.inviteToken, status: "invited", createdAt: now, updatedAt: now });
   },
 });
 
@@ -114,8 +135,15 @@ export const getForAnalysis = internalQuery({
 export const storeAnalysis = internalMutation({
   args: { applicationId: v.id("applications"), intelligence: v.any(), questions: v.any() },
   handler: async (ctx, args) => {
-    await ctx.db.insert("scrapedContexts", { applicationId: args.applicationId, provider: args.intelligence.webEvidence.provider, data: args.intelligence, createdAt: Date.now() });
-    for (const question of args.questions) await ctx.db.insert("questions", { applicationId: args.applicationId, sequence: question.sequence, data: question, createdAt: Date.now() });
+    const existingContexts = await ctx.db.query("scrapedContexts").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).order("desc").collect();
+    if (existingContexts[0]) await ctx.db.patch(existingContexts[0]._id, { provider: args.intelligence.webEvidence.provider, data: args.intelligence, createdAt: Date.now() });
+    else await ctx.db.insert("scrapedContexts", { applicationId: args.applicationId, provider: args.intelligence.webEvidence.provider, data: args.intelligence, createdAt: Date.now() });
+    const existingQuestions = await ctx.db.query("questions").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).collect();
+    for (const question of args.questions) {
+      const existing = existingQuestions.find((item) => item.data.id === question.id);
+      if (existing) await ctx.db.patch(existing._id, { sequence: question.sequence, data: question, createdAt: Date.now() });
+      else await ctx.db.insert("questions", { applicationId: args.applicationId, sequence: question.sequence, data: question, createdAt: Date.now() });
+    }
     await ctx.db.patch(args.applicationId, { status: "ready", updatedAt: Date.now() });
   },
 });
@@ -130,19 +158,29 @@ export const getInterviewData = internalQuery({
   handler: async (ctx, args) => {
     const application = await ctx.db.get(args.applicationId);
     if (!application || application.inviteToken !== args.inviteToken) throw new Error("Invalid invitation");
-    const context = await ctx.db.query("scrapedContexts").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).unique();
-    const questions = await ctx.db.query("questions").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).collect();
-    const answers = await ctx.db.query("answers").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).collect();
+    const context = await ctx.db.query("scrapedContexts").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).order("desc").first();
+    const questionRows = await ctx.db.query("questions").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).order("desc").collect();
+    const answerRows = await ctx.db.query("answers").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).order("desc").collect();
     if (!context) throw new Error("Analysis is missing");
-    return { intelligence: context.data, questions: questions.sort((a, b) => a.sequence - b.sequence), answers };
+    const questions = [...new Map(questionRows.map((item) => [item.data.id, item])).values()].sort((a, b) => a.sequence - b.sequence);
+    const answers = [...new Map(answerRows.map((item) => [item.questionId, item])).values()];
+    return { intelligence: context.data, questions, answers };
   },
 });
 
 export const storeAnswer = internalMutation({
   args: { applicationId: v.id("applications"), questionId: v.string(), transcript: v.string(), evaluation: v.any() },
   handler: async (ctx, args) => {
-    await ctx.db.insert("answers", { ...args, createdAt: Date.now() });
-    if (args.evaluation.followUp) await ctx.db.insert("questions", { applicationId: args.applicationId, sequence: args.evaluation.followUp.sequence, data: args.evaluation.followUp, createdAt: Date.now() });
+    const existingAnswers = await ctx.db.query("answers").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).order("desc").collect();
+    const existingAnswer = existingAnswers.find((item) => item.questionId === args.questionId);
+    if (existingAnswer) await ctx.db.patch(existingAnswer._id, { transcript: args.transcript, evaluation: args.evaluation, createdAt: Date.now() });
+    else await ctx.db.insert("answers", { ...args, createdAt: Date.now() });
+    if (args.evaluation.followUp) {
+      const existingQuestions = await ctx.db.query("questions").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).collect();
+      const existingFollowUp = existingQuestions.find((item) => item.data.id === args.evaluation.followUp.id);
+      if (existingFollowUp) await ctx.db.patch(existingFollowUp._id, { sequence: args.evaluation.followUp.sequence, data: args.evaluation.followUp });
+      else await ctx.db.insert("questions", { applicationId: args.applicationId, sequence: args.evaluation.followUp.sequence, data: args.evaluation.followUp, createdAt: Date.now() });
+    }
     await ctx.db.patch(args.applicationId, { status: "in_progress", updatedAt: Date.now() });
   },
 });
@@ -150,7 +188,10 @@ export const storeAnswer = internalMutation({
 export const storeResult = internalMutation({
   args: { applicationId: v.id("applications"), result: v.any() },
   handler: async (ctx, args) => {
-    await ctx.db.insert("results", { applicationId: args.applicationId, overallScore: args.result.overallScore, recommendation: args.result.recommendation, data: args.result, createdAt: Date.now() });
+    const existing = await ctx.db.query("results").withIndex("by_application", (q) => q.eq("applicationId", args.applicationId)).order("desc").first();
+    const result = { overallScore: args.result.overallScore, recommendation: args.result.recommendation, data: args.result, createdAt: Date.now() };
+    if (existing) await ctx.db.patch(existing._id, result);
+    else await ctx.db.insert("results", { applicationId: args.applicationId, ...result });
     await ctx.db.patch(args.applicationId, { status: "completed", updatedAt: Date.now() });
   },
 });

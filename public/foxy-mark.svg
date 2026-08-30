@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Foxy pixel fox</title>
+  <defs>
+    <linearGradient id="fox" x1="9" y1="8" x2="55" y2="57" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff853f"/>
+      <stop offset=".56" stop-color="#f24f68"/>
+      <stop offset="1" stop-color="#8d2aa8"/>
+    </linearGradient>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <path fill="#32122f" d="M8 6h14v6h20V6h14v30h-6v10h-8v6H22v-6h-8V36H8z"/>
+    <path fill="url(#fox)" d="M14 12h8v6h20v-6h8v24h-6v8h-8v4h-8v-4h-8v-8h-6z"/>
+    <path fill="#ffad67" d="M14 12h6v12h-6zm30 0h6v12h-6z"/>
+    <path fill="#fff5e7" d="M20 32h8v6h8v-6h8v8h-6v6H26v-6h-6z"/>
+    <path fill="#32122f" d="M20 28h6v6h-6zm18 0h6v6h-6zm-9 10h6v5h-6z"/>
+    <path fill="#fff5e7" d="M23 18h5v5h-5zm13 0h5v5h-5z" opacity=".65"/>
+  </g>
+</svg>

@@ -7,6 +7,7 @@ import { generateInterviewQuestions } from "./questions";
 import { buildTechnicalAssessment } from "./report";
 import { parsePublicUrl } from "./public-url";
 import { parseAnalyzeRequest } from "./validation";
+import { extractGithubUsername } from "./github";
 
 beforeEach(() => {
   delete process.env.OPENROUTER_API_KEY;
@@ -42,6 +43,8 @@ describe("candidate intelligence", () => {
     expect(codeQuestions.length).toBeGreaterThanOrEqual(1);
     expect(codeQuestions.length).toBeLessThanOrEqual(2);
     expect(codeQuestions.every((question) => question.codeSnippet && question.choices?.length === 4)).toBe(true);
+    expect(questions.slice(0, 2).every((question) => question.format !== "code_multiple_choice")).toBe(true);
+    expect(questions.findIndex((question) => question.format === "code_multiple_choice")).toBeGreaterThanOrEqual(2);
   });
 
   it("creates an adaptive follow-up for an insufficient answer", async () => {
@@ -83,6 +86,13 @@ describe("candidate intelligence", () => {
     const request = parseAnalyzeRequest({ candidate: { id: "candidate", name: "Alex", githubUrl: "github.com/octocat" }, role: demoRole });
     expect(request.candidate.cvText).toBe("");
     expect(request.candidate.githubUrl).toBe("https://github.com/octocat");
+  });
+
+  it("accepts GitHub profiles and rejects repositories or random GitHub pages", () => {
+    expect(extractGithubUsername("github.com/elyxdev")).toBe("elyxdev");
+    expect(() => extractGithubUsername("github.com/elyxdev/a-repository")).toThrow("user profile");
+    expect(() => extractGithubUsername("github.com/settings/profile")).toThrow("user profile");
+    expect(() => extractGithubUsername("https://example.com/elyxdev")).toThrow("github.com");
   });
 
   it("rejects private and metadata URLs", () => {

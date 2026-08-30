@@ -2,13 +2,12 @@
 
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { demoRole } from "@/lib/intelligence/demo";
 import type { AnalyzeCandidateResult, AnswerEvaluation, CandidateInput, InterviewQuestion, RoleCompetency, TechnicalAssessment } from "@/lib/intelligence/types";
-import { speakInterviewPrompt, stopInterviewPrompt, transcribeWithBrowser, type VoiceMode } from "@/lib/voice/browser";
 import { startProctoring, type ProctoringSession } from "@/lib/proctoring";
-import { normalizePublicUrl } from "@/lib/intelligence/public-url";
+import { BrandLogo, FoxyMark } from "../BrandLogo";
 
 type Stage = "candidate" | "evidence" | "interview" | "report";
 type AnalysisResponse = AnalyzeCandidateResult & { events: unknown[] };
@@ -43,9 +42,7 @@ function AppHeader({ stage, onReset }: { stage: Stage; onReset: () => void }) {
   return (
     <header className="app-header">
       <button className="brand" onClick={onReset} aria-label="Reset Foxy">
-        <span className="brand-mark">F</span>
-        <span>Foxy</span>
-        <span className="brand-mode">Lab</span>
+        <BrandLogo mode="Interview" />
       </button>
       <nav className="stage-nav" aria-label="Interview progress">
         {stages.map((item, index) => <div key={item.id} className={`stage-item ${index === current ? "active" : ""} ${index < current ? "complete" : ""}`}><span>{index < current ? <Icon name="check" size={13} /> : index + 1}</span>{item.label}</div>)}
@@ -56,9 +53,13 @@ function AppHeader({ stage, onReset }: { stage: Stage; onReset: () => void }) {
 }
 
 export default function Home() {
-  const inviteToken = useSyncExternalStore(subscribeToLocation, getInviteToken, () => "");
+  const urlInviteToken = useSyncExternalStore(subscribeToLocation, getInviteToken, () => "");
+  const [selfServeToken, setSelfServeToken] = useState("");
+  const inviteToken = urlInviteToken || selfServeToken;
   const [applicationId, setApplicationId] = useState<Id<"applications"> | null>(null);
   const inviteData = useQuery(api.applications.getByInvite, inviteToken ? { inviteToken } : "skip");
+  const openJobs = useQuery(api.applications.listOpenJobs, inviteToken ? "skip" : {});
+  const applyToJob = useMutation(api.applications.applyToJob);
   const submitProfile = useMutation(api.applications.submitCandidateProfile);
   const analyzeApplication = useAction(api.interview.analyzeApplication);
   const evaluateApplicationAnswer = useAction(api.interview.evaluateApplicationAnswer);
@@ -68,6 +69,9 @@ export default function Home() {
   const [stage, setStage] = useState<Stage>("candidate");
   const [name, setName] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
+  const [githubStatus, setGithubStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [githubProfile, setGithubProfile] = useState<{ profileUrl: string; displayName: string; publicRepos: number; avatarUrl: string } | null>(null);
+  const [githubMessage, setGithubMessage] = useState("");
   const [cvText, setCvText] = useState("");
   const [resumeFileName, setResumeFileName] = useState("");
   const [parsingResume, setParsingResume] = useState(false);
@@ -85,18 +89,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
-  const [recording, setRecording] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const [voiceMode, setVoiceMode] = useState<VoiceMode | null>(null);
-  const [interviewMode, setInterviewMode] = useState<"text" | "voice">("text");
   const [proctoringEnabled, setProctoringEnabled] = useState(false);
   const [startingProctoring, setStartingProctoring] = useState(false);
   const [uploadingRecordings, setUploadingRecordings] = useState(false);
   const [recordingsUploaded, setRecordingsUploaded] = useState(false);
   const proctoringSession = useRef<ProctoringSession | null>(null);
   const cameraPreview = useRef<HTMLVideoElement | null>(null);
-  const voiceConversationActive = useRef(false);
-  const stopRecording = useRef<(() => void) | null>(null);
+
+  const chatEnd = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (stage === "interview") chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [stage, questionIndex, evaluations.length, currentEvaluation]);
 
   useEffect(() => {
     if (stage === "interview" && cameraPreview.current && proctoringSession.current) {
@@ -116,13 +120,25 @@ export default function Home() {
   const currentQuestion = questions[questionIndex];
   const currentCompetency = analysis?.intelligence.competencies.find((item) => item.competency.id === currentQuestion?.competencyId);
 
+  async function chooseRole(jobPostingId: Id<"jobPostings">) {
+    setError("");
+    try {
+      const token = `${crypto.randomUUID()}${crypto.randomUUID()}`;
+      await applyToJob({ jobPostingId, inviteToken: token });
+      setSelfServeToken(token);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not start this application."); }
+  }
+
+  function applyToAnotherRole() {
+    reset();
+    setSelfServeToken(""); setApplicationId(null);
+    if (urlInviteToken) window.history.replaceState(null, "", "/apply");
+  }
+
   function reset() {
-    voiceConversationActive.current = false;
-    stopRecording.current?.();
-    stopInterviewPrompt();
     if (proctoringSession.current) { void proctoringSession.current.stop(); proctoringSession.current = null; }
     setProctoringEnabled(false); setRecordingsUploaded(false);
-    setStage("candidate"); setAnalysis(null); setQuestions([]); setEvaluations([]); setReport(null); setQuestionIndex(0); setAnswer(""); setTypedKeystrokes(0); setPastedCharacters(0); setPasteWarning(false); setCurrentEvaluation(null); setError("");
+    setStage("candidate"); setGithubStatus("idle"); setGithubProfile(null); setGithubMessage(""); setAnalysis(null); setQuestions([]); setEvaluations([]); setReport(null); setQuestionIndex(0); setAnswer(""); setTypedKeystrokes(0); setPastedCharacters(0); setPasteWarning(false); setCurrentEvaluation(null); setError("");
   }
 
   async function parseResume(file: File) {
@@ -180,10 +196,28 @@ export default function Home() {
     finally { setUploadingRecordings(false); setProctoringEnabled(false); }
   }
 
+  async function validateGithubInput() {
+    setGithubStatus("checking"); setGithubMessage("");
+    try {
+      const response = await fetch("/api/github/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: githubUrl }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "This GitHub profile could not be validated");
+      setGithubProfile(data); setGithubStatus("valid"); setGithubMessage(`${data.publicRepos} public repositories found`);
+      return data as { profileUrl: string; displayName: string; publicRepos: number; avatarUrl: string };
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "This GitHub profile could not be validated";
+      setGithubProfile(null); setGithubStatus("invalid"); setGithubMessage(message);
+      throw cause;
+    }
+  }
+
   async function analyzeCandidate(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true); setLoadingStep(0); setError("");
-    const candidate: CandidateInput = { id: `candidate-${Date.now()}`, name: name.trim(), cvText: cvText.trim(), githubUrl: normalizePublicUrl(githubUrl) };
+    event.preventDefault(); setError("");
+    let verifiedGithub;
+    try { verifiedGithub = githubStatus === "valid" && githubProfile ? githubProfile : await validateGithubInput(); }
+    catch { return; }
+    setLoading(true); setLoadingStep(0);
+    const candidate: CandidateInput = { id: `candidate-${Date.now()}`, name: name.trim(), cvText: cvText.trim(), githubUrl: verifiedGithub.profileUrl };
     try {
       let data: AnalysisResponse;
       if (inviteToken) {
@@ -204,68 +238,11 @@ export default function Home() {
     }
   }
 
-  async function beginVoiceTurn(question: InterviewQuestion, priorEvaluations: AnswerEvaluation[]) {
-    if (!voiceConversationActive.current) return;
-    setSpeaking(true); setError("");
-    try { setVoiceMode(await speakInterviewPrompt(question.prompt)); }
-    catch { setVoiceMode("text_only"); }
-    finally {
-      setSpeaking(false);
-      if (voiceConversationActive.current) window.setTimeout(() => startVoiceListening(question, priorEvaluations), 180);
-    }
-  }
-
-  function startVoiceListening(question: InterviewQuestion, priorEvaluations: AnswerEvaluation[]) {
-    if (!voiceConversationActive.current) return;
-    const session = transcribeWithBrowser((text) => setAnswer(text), { silenceMs: 2200, maxDurationMs: 90000 });
-    if (!session.supported) {
-      voiceConversationActive.current = false;
-      setInterviewMode("text");
-      setError("Hands-free speech recognition is unavailable in this browser. Continue in text mode.");
-      session.transcript.catch(() => {});
-      return;
-    }
-    stopRecording.current = session.stop; setRecording(true); setError("");
-    session.transcript.then((text) => {
-      if (!voiceConversationActive.current) return;
-      if (!text.trim()) {
-        setError("I didn’t hear an answer. Listening again…");
-        window.setTimeout(() => startVoiceListening(question, priorEvaluations), 700);
-        return;
-      }
-      setAnswer(text);
-      void evaluateCurrentAnswer(text, question, priorEvaluations);
-    }).catch((cause) => {
-      voiceConversationActive.current = false;
-      setInterviewMode("text");
-      setError(cause instanceof Error ? cause.message : "Voice recognition stopped. Continue in text mode.");
-    }).finally(() => setRecording(false));
-  }
-
-  function toggleRecording() {
-    if (recording) { stopRecording.current?.(); setRecording(false); return; }
-    if (currentQuestion) startVoiceListening(currentQuestion, evaluations);
-  }
-
   function handleAnswerPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
     const pasted = event.clipboardData.getData("text");
     if (!pasted.trim()) return;
     setPastedCharacters((count) => count + pasted.length);
     if (pasted.trim().length >= 40 || pasted.length > Math.max(20, answer.length * 0.5)) setPasteWarning(true);
-  }
-
-  function enterVoiceMode() {
-    if (!currentQuestion || currentQuestion.format === "code_multiple_choice" || voiceConversationActive.current) return;
-    voiceConversationActive.current = true;
-    setInterviewMode("voice"); setAnswer("");
-    void beginVoiceTurn(currentQuestion, evaluations);
-  }
-
-  function exitVoiceMode() {
-    voiceConversationActive.current = false;
-    stopRecording.current?.();
-    stopInterviewPrompt();
-    setRecording(false); setSpeaking(false); setInterviewMode("text");
   }
 
   function selectCodeChoice(choiceId: string, label: string) {
@@ -303,16 +280,9 @@ export default function Home() {
       setQuestions(nextQuestions);
     }
     if (questionIndex + 1 < nextQuestions.length) {
-      const nextQuestion = nextQuestions[questionIndex + 1];
-      setQuestionIndex((index) => index + 1); setAnswer(""); setTypedKeystrokes(0); setPastedCharacters(0); setPasteWarning(false); setCurrentEvaluation(null); setVoiceMode(null);
-      if (nextQuestion.format === "code_multiple_choice") {
-        voiceConversationActive.current = false;
-        stopInterviewPrompt();
-        setInterviewMode("text");
-      } else if (voiceConversationActive.current) window.setTimeout(() => void beginVoiceTurn(nextQuestion, completedEvaluations), 180);
+      setQuestionIndex((index) => index + 1); setAnswer(""); setTypedKeystrokes(0); setPastedCharacters(0); setPasteWarning(false); setCurrentEvaluation(null);
       return;
     }
-    voiceConversationActive.current = false;
     await generateReport(completedEvaluations);
   }
 
@@ -339,7 +309,14 @@ export default function Home() {
       {error && <div className="error-banner" role="alert"><span>{error}</span><button onClick={() => setError("")}>Dismiss</button></div>}
       {inviteToken && inviteData === null && <div className="error-banner" role="alert"><span>This candidate invitation is invalid or no longer available.</span></div>}
 
-      {stage === "candidate" && !loading && (
+      {stage === "candidate" && !loading && !inviteToken && (
+        <main className="role-picker">
+          <div className="page-heading"><h1>Choose a role to apply for</h1><p>Every application runs an evidence-backed interview built from your public work. You can apply to as many roles as you like.</p></div>
+          {openJobs === undefined ? <div className="dashboard-empty">Loading open roles…</div> : openJobs.length === 0 ? <div className="dashboard-empty"><h2>No open roles right now</h2><p>Ask the hiring team for a direct invitation link.</p></div> : <div className="role-list">{openJobs.map((job) => <article key={job._id}><div><span className="role-type">Open role</span><h2>{job.title}</h2>{job.description && <p>{job.description}</p>}<small>{job.competencyCount} competencies assessed</small></div><button className="primary-button" onClick={() => void chooseRole(job._id)}>Apply <Icon name="arrow" /></button></article>)}</div>}
+        </main>
+      )}
+
+      {stage === "candidate" && !loading && inviteToken && (
         <main className="workspace candidate-workspace">
           <section className="form-pane">
             <div className="role-context"><span>Application for</span><strong>{roleTitle}</strong></div>
@@ -350,7 +327,7 @@ export default function Home() {
             <form onSubmit={analyzeCandidate} className="candidate-form">
               <div className="field-row">
                 <label><span>Full name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your full name" autoComplete="name" required /></label>
-                <label><span>GitHub profile</span><div className="input-with-icon"><Icon name="github" /><input type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} placeholder="https://github.com/username" required /></div></label>
+                <label className={`github-field github-${githubStatus}`}><span>GitHub profile</span><div className="input-with-icon"><Icon name="github" /><input type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={githubUrl} onChange={(event) => { setGithubUrl(event.target.value); setGithubStatus("idle"); setGithubProfile(null); setGithubMessage(""); }} onBlur={() => { if (githubUrl.trim() && githubStatus === "idle") void validateGithubInput().catch(() => {}); }} placeholder="github.com/username" required />{githubStatus === "checking" && <span className="github-spinner button-spinner" />}{githubStatus === "valid" && <span className="github-valid-badge"><Icon name="check" size={14} /></span>}</div>{githubMessage && <small className="github-message">{githubMessage}</small>}</label>
               </div>
               <div className="resume-field">
                 <span>Résumé <small>Optional</small></span>
@@ -359,7 +336,7 @@ export default function Home() {
                   {parsingResume ? <><span className="upload-icon"><span className="button-spinner" /></span><strong>Reading your résumé…</strong><p>Context.dev is extracting the text securely.</p></> : cvText ? <><span className="upload-icon upload-success"><Icon name="check" /></span><strong>{resumeFileName}</strong><p>Résumé ready · {cvText.length.toLocaleString()} characters extracted</p><small>Choose another file</small></> : <><span className="upload-icon"><Icon name="arrow" /></span><strong>Drop your résumé here</strong><p>or click to choose a file</p><small>PDF, DOCX, DOC, RTF, or TXT · max 10 MB</small></>}
                 </label>
               </div>
-              <div className="form-action"><div><strong>Next: personalized interview</strong><span>Résumé optional · allow around 10 minutes</span></div><button className="primary-button" type="submit" disabled={parsingResume || !name.trim() || !githubUrl.trim()}>Prepare my interview <Icon name="arrow" /></button></div>
+              <div className="form-action"><div><strong>Next: personalized interview</strong><span>Résumé optional · allow around 10 minutes</span></div><button className="primary-button" type="submit" disabled={parsingResume || githubStatus === "checking" || githubStatus === "invalid" || !name.trim() || !githubUrl.trim()}>Prepare my interview <Icon name="arrow" /></button></div>
             </form>
           </section>
           <aside className="method-pane role-pane">
@@ -374,7 +351,7 @@ export default function Home() {
 
       {stage === "candidate" && loading && (
         <main className="analysis-loading">
-          <div className="scan-orbit"><span>F</span><i /><i /></div>
+          <div className="scan-orbit"><FoxyMark size={42} /><i /><i /></div>
           <h1>Preparing your interview</h1>
           <p>This usually takes 15–30 seconds while Foxy connects your résumé claims with your public work.</p>
           <div className="loading-steps">{loadingMessages.map((message, index) => <div key={message} className={index < loadingStep ? "done" : index === loadingStep ? "active" : ""}><span>{index < loadingStep ? <Icon name="check" size={14} /> : index + 1}</span>{message}</div>)}</div>
@@ -387,11 +364,12 @@ export default function Home() {
             <span className="setup-check"><Icon name="check" size={28} /></span>
             <h1>Your interview is ready</h1>
             <p>Thanks, {analysis.intelligence.candidate.name}. Foxy prepared {questions.length} technical questions for the {roleTitle} role.</p>
-            <div className="setup-facts"><div><strong>{questions.length}</strong><span>technical questions</span></div><div><strong>1–2</strong><span>adaptive follow-ups</span></div><div><strong>~10 min</strong><span>estimated time</span></div></div>
+            <div className="setup-facts"><div><strong>{questions.length}</strong><span>technical questions</span></div><div><strong>{analysis.intelligence.webEvidence.projects.length}</strong><span>projects reviewed</span></div><div><strong>~10 min</strong><span>estimated time</span></div></div>
+            <div className="extraction-overview"><header><div><span>Context.dev extraction</span><strong>Here’s what Foxy found</strong></div><small>{analysis.intelligence.webEvidence.analyzedUrls.length} public pages inspected</small></header><div className="technology-tags">{analysis.intelligence.webEvidence.technologies.length ? analysis.intelligence.webEvidence.technologies.slice(0, 8).map((technology) => <span key={technology}>{technology}</span>) : <small>No languages identified</small>}</div><div className="extracted-projects">{analysis.intelligence.webEvidence.projects.length ? analysis.intelligence.webEvidence.projects.slice(0, 3).map((project) => <article key={project.id}><div><strong>{project.name}</strong><span>{project.strength} evidence</span></div><p>{project.description || project.source.excerpt}</p><small>{project.technologies.slice(0, 4).join(" · ")}</small></article>) : <p className="no-projects">No public projects were available to summarize. Foxy will focus on role fundamentals.</p>}</div></div>
             <div className="proctoring-setup"><video ref={cameraPreview} muted playsInline /><div><span className={`recording-state ${proctoringEnabled ? "active" : ""}`}><i />{proctoringEnabled ? "Camera and screen recording" : "Proctoring required"}</span><p>With your permission, Foxy records your camera and shared screen during the interview for manual recruiter review. No facial or behavioral analysis is performed.</p></div></div>
             {!proctoringEnabled ? <button className="primary-button setup-start" onClick={enableProctoring} disabled={startingProctoring}>{startingProctoring ? "Waiting for permissions…" : "Enable camera & screen"}</button> : <button className="primary-button setup-start" onClick={() => setStage("interview")}>Start proctored interview <Icon name="arrow" /></button>}
           </section>
-          <aside className="setup-aside"><h2>Before you begin</h2><div><span>01</span><p>Answer from your own experience. Concrete decisions and trade-offs are more useful than textbook definitions.</p></div><div><span>02</span><p>Use the microphone or type each response. You can always fall back to text.</p></div><div><span>03</span><p>Foxy may ask a follow-up when an important technical detail needs clarification.</p></div><div><span>04</span><p>Your answers are evaluated for technical substance, not accent, grammar, or speaking style.</p></div></aside>
+          <aside className="setup-aside"><h2>Before you begin</h2><div><span>01</span><p>Answer from your own experience. Concrete decisions and trade-offs are more useful than textbook definitions.</p></div><div><span>02</span><p>Type each response in the chat. Foxy moves to the next question automatically after you submit.</p></div><div><span>03</span><p>Foxy may ask a follow-up when an important technical detail needs clarification.</p></div><div><span>04</span><p>Your answers are evaluated for technical substance, not accent, grammar, or speaking style.</p></div></aside>
         </main>
       )}
 
@@ -399,25 +377,18 @@ export default function Home() {
         <main className="chat-layout">
           <aside className="interview-progress-rail" aria-label={`${Math.round(((questionIndex + 1) / questions.length) * 100)}% of interview completed`}><div className="rail-track"><i style={{ height: `${((questionIndex + 1) / questions.length) * 100}%` }} /></div></aside>
           <section className="chat-window">
-            <header className="chat-header"><div><span>Foxy technical interview</span><strong>{currentCompetency?.competency.name}</strong></div><div className="chat-header-controls"><div className="proctor-live"><video ref={cameraPreview} muted playsInline /><span><i />REC</span><small>Screen + camera</small></div><div className="mode-switch" role="group" aria-label="Interview mode"><button className={interviewMode === "text" ? "active" : ""} onClick={exitVoiceMode}>Text</button><button className={interviewMode === "voice" ? "active" : ""} onClick={enterVoiceMode} disabled={currentQuestion.format === "code_multiple_choice"} title={currentQuestion.format === "code_multiple_choice" ? "Code questions use text mode" : undefined}><Icon name="mic" size={14} /> Voice</button></div></div></header>
-            {interviewMode === "text" ? <>
+            <header className="chat-header"><div><span>Foxy technical interview</span><strong>{currentCompetency?.competency.name}</strong></div><div className="chat-header-controls"><div className="proctor-live"><video ref={cameraPreview} muted playsInline /><span><i />REC</span><small>Screen + camera</small></div></div></header>
+            <>
               <div className="chat-messages">
-                <div className="chat-intro"><span>F</span><p>I’ll ask about your actual projects and technical decisions. Take your time and be specific.</p></div>
-                {evaluations.map((evaluation) => { const question = questions.find((item) => item.id === evaluation.questionId); return question ? <div className="chat-exchange" key={evaluation.questionId}><div className="message message-foxy"><span>F</span><div><small>{analysis.intelligence.role.competencies.find((item) => item.id === question.competencyId)?.name}</small><p>{question.prompt}</p>{question.codeSnippet && <pre className="code-snippet"><code>{question.codeSnippet}</code></pre>}</div></div><div className="message message-candidate"><p>{evaluation.answer}</p></div></div> : null; })}
-                {!currentEvaluation && <div className="message message-foxy current"><span>F</span><div><small>{currentQuestion.kind.replaceAll("_", " ")} · {currentCompetency?.competency.name}</small><p>{currentQuestion.prompt}</p>{currentQuestion.codeSnippet && <pre className="code-snippet"><code>{currentQuestion.codeSnippet}</code></pre>}{currentCompetency?.evidence[0] && <em>Based on {currentCompetency.evidence[0].name}</em>}</div></div>}
+                <div className="message message-foxy intro-message"><FoxyMark size={27} /><div><small>Foxy · Technical interviewer</small><p>Hi {analysis.intelligence.candidate.name.split(" ")[0]}, I’m Foxy. I’ll ask a few questions about your experience and the public work connected to your application.</p><p>We’ll begin conversationally, then move into one or two short code questions. Take your time and explain the decisions you made.</p></div></div>
+                {evaluations.map((evaluation) => { const question = questions.find((item) => item.id === evaluation.questionId); return question ? <div className="chat-exchange" key={evaluation.questionId}><div className="message message-foxy"><FoxyMark size={27} /><div><small>{analysis.intelligence.role.competencies.find((item) => item.id === question.competencyId)?.name}</small><p>{question.prompt}</p>{question.codeSnippet && <pre className="code-snippet"><code>{question.codeSnippet}</code></pre>}</div></div><div className="message message-candidate"><p>{evaluation.answer}</p></div></div> : null; })}
+                {!currentEvaluation && <div className="message message-foxy current"><FoxyMark size={27} /><div><small>{currentQuestion.kind.replaceAll("_", " ")} · {currentCompetency?.competency.name}</small><p>{currentQuestion.prompt}</p>{currentQuestion.codeSnippet && <pre className="code-snippet"><code>{currentQuestion.codeSnippet}</code></pre>}{currentCompetency?.evidence[0] && <em>Based on {currentCompetency.evidence[0].name}</em>}</div></div>}
                 {!currentEvaluation && currentQuestion.format === "code_multiple_choice" && <div className="code-choices">{currentQuestion.choices?.map((choice) => <button key={choice.id} onClick={() => selectCodeChoice(choice.id, choice.label)} disabled={loading}><span>{choice.id.toUpperCase()}</span><p>{choice.label}</p></button>)}</div>}
                 {currentEvaluation && <div className="answer-saved"><span><Icon name="check" size={15} /></span><div><strong>Answer saved</strong><p>{currentEvaluation.followUp ? "I have one clarifying follow-up." : "Ready for the next question."}</p></div></div>}
+                <div ref={chatEnd} aria-hidden="true" />
               </div>
               {currentQuestion.format !== "code_multiple_choice" && <div className="chat-composer"><textarea value={answer} onChange={(event) => setAnswer(event.target.value)} onPaste={handleAnswerPaste} placeholder="Type your answer…" disabled={Boolean(currentEvaluation)} onKeyDown={(event) => { if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) setTypedKeystrokes((count) => count + 1); if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !currentEvaluation) void evaluateCurrentAnswer(); }} />{!currentEvaluation ? <button className="send-button" onClick={() => void evaluateCurrentAnswer()} disabled={loading || answer.trim().length < 8} aria-label="Submit answer">{loading ? <span className="button-spinner" /> : <Icon name="arrow" />}</button> : <div className="auto-advance"><span className="button-spinner" />{questionIndex + 1 < questions.length || currentEvaluation.followUp ? "Preparing next question…" : "Completing interview…"}</div>}<small>⌘ Enter to submit</small>{pasteWarning && <div className="paste-warning" role="alert"><div><strong>Pasted answer detected</strong><p>{pastedCharacters > typedKeystrokes ? "Most of this response appears to have been pasted." : "A large section of this response was pasted."} Please answer in your own words so we can understand your experience.</p></div><button type="button" onClick={() => setPasteWarning(false)}>Dismiss</button></div>}</div>}
-            </> : <div className="voice-room">
-              <div className={`voice-orb ${recording ? "listening" : ""} ${speaking ? "speaking" : ""}`}><span>F</span><i /><i /></div>
-              <span className="voice-state">{recording ? "Listening · speak naturally" : speaking ? "Foxy is speaking" : loading ? "Thinking" : "Connected · hands-free"}</span><div className={`voice-wave ${recording || speaking ? "active" : ""}`} aria-hidden="true">{[0, 1, 2, 3, 4, 5, 6].map((bar) => <i key={bar} />)}</div>
-              <h1>{currentQuestion.prompt}</h1>
-              {answer && <p className="live-transcript">“{answer}”</p>}
-              {!currentEvaluation ? <div className="voice-controls"><button className="secondary-button" onClick={() => currentQuestion && void beginVoiceTurn(currentQuestion, evaluations)} disabled={speaking || recording}>{speaking ? <span className="button-spinner" /> : <Icon name="play" />} Play question</button><button className={`voice-record ${recording ? "recording" : ""}`} onClick={toggleRecording} disabled={speaking || loading} aria-label={recording ? "Stop and submit answer" : "Start answering"}>{recording ? <Icon name="stop" size={24} /> : <Icon name="mic" size={25} />}</button><button className="secondary-button end-call" onClick={exitVoiceMode}>End voice</button></div> : <div className="voice-controls"><div className="auto-advance"><span className="button-spinner" />{questionIndex + 1 < questions.length || currentEvaluation.followUp ? "Preparing next question…" : "Completing interview…"}</div></div>}
-              <small className="voice-exit">Foxy listens automatically after every question</small>
-              {voiceMode && <small className="voice-provider">Audio: {voiceMode.replaceAll("_", " ")}</small>}
-            </div>}
+            </>
           </section>
         </main>
       )}
@@ -429,6 +400,7 @@ export default function Home() {
           <p>Thank you, {analysis?.intelligence.candidate.name}. Your responses have been submitted for the {roleTitle} role.</p>
           <div className="completion-receipt"><div><span>Application</span><strong>{roleTitle}</strong></div><div><span>Responses submitted</span><strong>{evaluations.length}</strong></div><div><span>Proctoring</span><strong>{recordingsUploaded ? inviteToken ? "Camera + screen uploaded" : "Demo recording completed" : "Upload needs review"}</strong></div><div><span>Status</span><strong>{uploadingRecordings ? "Uploading recordings" : "Under review"}</strong></div></div>
           <small>You can close this window. The hiring team will contact you about next steps.</small>
+          <button className="secondary-button apply-again" onClick={applyToAnotherRole}><Icon name="refresh" /> Apply to another role</button>
         </main>
       )}
     </div>
